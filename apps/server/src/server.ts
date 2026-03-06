@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import fastifyCors from '@fastify/cors'
 import fastifyMultipart from '@fastify/multipart'
 import fastifyRateLimit from '@fastify/rate-limit'
-import Fastify from 'fastify'
+import Fastify, { type FastifyError } from 'fastify'
 import { registerAttachmentRoutes } from './routes/attachments.js'
 import { registerChatflowRoutes } from './routes/chatflows.js'
 import { registerPingRoutes } from './routes/ping.js'
@@ -39,10 +39,12 @@ export async function buildServer() {
     },
   })
 
-  app.setErrorHandler((error, _request, reply) => {
-    const err = error as Record<string, unknown>
-    const code = typeof err.statusCode === 'number' ? err.statusCode : 500
-    const msg = error instanceof Error ? error.message : 'Something went wrong'
+  app.setErrorHandler<FastifyError>((error, request, reply) => {
+    const code = error.statusCode ?? 500
+    if (code >= 500) {
+      request.log.error(error)
+    }
+    const msg = error.message ?? 'Something went wrong'
     reply.status(code).send({
       statusCode: code,
       error: code < 500 ? msg : 'Internal Server Error',

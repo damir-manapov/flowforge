@@ -4,12 +4,12 @@ RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
 
 WORKDIR /app
 
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY apps/server/package.json apps/server/
 
 RUN pnpm install --frozen-lockfile --filter @flowforge/server
 
-COPY tsconfig.json tsconfig.check.json ./
+COPY tsconfig.json ./
 COPY apps/server/ apps/server/
 
 RUN pnpm build
@@ -21,7 +21,7 @@ RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
 
 WORKDIR /app
 
-COPY --from=builder --chown=app:app /app/package.json /app/pnpm-workspace.yaml /app/pnpm-lock.yaml ./
+COPY --from=builder --chown=app:app /app/package.json /app/pnpm-workspace.yaml /app/pnpm-lock.yaml /app/.npmrc ./
 COPY --from=builder --chown=app:app /app/apps/server/package.json apps/server/
 COPY --from=builder --chown=app:app /app/apps/server/dist apps/server/dist
 

@@ -9,7 +9,7 @@ export async function runConcurrent<T>(
   tasks: (() => Promise<T>)[],
   concurrency?: number | undefined,
 ): Promise<ConcurrentResult<T>> {
-  const limit = concurrency ?? tasks.length
+  const limit = Math.max(1, concurrency ?? tasks.length)
   const startedAt = Date.now()
 
   const results: PromiseSettledResult<T>[] = new Array(tasks.length)

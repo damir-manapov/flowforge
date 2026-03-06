@@ -12,7 +12,7 @@ export const ChatflowSchema = z.object({
   analytic: z.string().nullable(),
   speechToText: z.string().nullable(),
   category: z.string().nullable(),
-  type: z.string(),
+  type: z.enum(['CHATFLOW', 'MULTIAGENT']),
   createdDate: z.string(),
   updatedDate: z.string(),
 })

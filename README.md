@@ -17,7 +17,7 @@ flowforge/
 ## Prerequisites
 
 - Node.js >= 22
-- pnpm 10.30.0 (corepack-managed via `packageManager` field)
+- pnpm (corepack-managed via `packageManager` field)
 
 ## Install
 

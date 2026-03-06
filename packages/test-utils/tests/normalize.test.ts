@@ -13,8 +13,8 @@ describe('removeUnstableFields', () => {
   it('handles nested objects', () => {
     const input = { nested: { id: 'abc', value: 42 } }
     const result = removeUnstableFields(input) as Record<string, Record<string, unknown>>
-    expect(result.nested.id).toBe('[NORMALIZED]')
-    expect(result.nested.value).toBe(42)
+    expect(result.nested?.id).toBe('[NORMALIZED]')
+    expect(result.nested?.value).toBe(42)
   })
 
   it('handles arrays of objects', () => {
