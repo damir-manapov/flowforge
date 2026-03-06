@@ -2,13 +2,6 @@ import { v4 as uuidv4 } from 'uuid'
 import type { Chatflow } from '../storage/inMemoryStore.js'
 import { getChatflowById } from '../storage/inMemoryStore.js'
 
-export interface PredictionInput {
-  question: string
-  streaming: boolean
-  overrideConfig?: Record<string, unknown> | undefined
-  history?: unknown[] | undefined
-}
-
 export interface PredictionResult {
   text: string
   question: string

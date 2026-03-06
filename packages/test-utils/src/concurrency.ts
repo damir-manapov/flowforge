@@ -13,7 +13,7 @@ export async function runConcurrent<T>(
   const startedAt = Date.now()
 
   const results: PromiseSettledResult<T>[] = new Array(tasks.length)
-  const executing: Promise<void>[] = []
+  const executing = new Set<Promise<void>>()
 
   for (let taskIdx = 0; taskIdx < tasks.length; taskIdx++) {
     const idx = taskIdx
@@ -29,12 +29,10 @@ export async function runConcurrent<T>(
       }
     })()
 
-    executing.push(p)
-    void p.then(() => {
-      executing.splice(executing.indexOf(p), 1)
-    })
+    executing.add(p)
+    void p.then(() => executing.delete(p))
 
-    if (executing.length >= limit) {
+    if (executing.size >= limit) {
       await Promise.race(executing)
     }
   }

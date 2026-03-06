@@ -22,6 +22,14 @@ export function registerAttachmentRoutes(app: FastifyInstance): void {
         })
       }
 
+      if (!chatId || chatId.trim().length === 0) {
+        return reply.code(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: 'chatId is required',
+        })
+      }
+
       const chatflow = lookupChatflow(chatflowId)
       if (!chatflow) {
         return reply.code(404).send({

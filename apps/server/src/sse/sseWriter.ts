@@ -6,6 +6,11 @@ export function writeSSE(reply: FastifyReply, event: string, data: string): void
   reply.raw.write(payload)
 }
 
+export function writeKeepAlive(reply: FastifyReply): void {
+  if (reply.raw.destroyed) return
+  reply.raw.write(': keepalive\n\n')
+}
+
 export function endSSE(reply: FastifyReply): void {
   if (!reply.raw.destroyed) {
     reply.raw.end()

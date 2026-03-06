@@ -15,8 +15,10 @@ function getMinLevel(): LogLevel {
   return 'info'
 }
 
+const cachedMinLevel = getMinLevel()
+
 function shouldLog(level: LogLevel): boolean {
-  return LEVEL_ORDER[level] >= LEVEL_ORDER[getMinLevel()]
+  return LEVEL_ORDER[level] >= LEVEL_ORDER[cachedMinLevel]
 }
 
 function formatMessage(level: LogLevel, message: string, context?: Record<string, unknown> | undefined): string {

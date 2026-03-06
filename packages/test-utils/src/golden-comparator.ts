@@ -23,7 +23,7 @@ export class GoldenComparator {
     }
 
     const expectedContent = readFileSync(filePath, 'utf-8')
-    const expected = JSON.parse(expectedContent) as unknown
+    const expected = normalize(JSON.parse(expectedContent) as unknown)
     const normalizedActual = normalize(actualData)
 
     return deepDiff('', expected, normalizedActual)

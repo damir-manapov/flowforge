@@ -31,7 +31,14 @@ export function getChatflowById(id: string): Chatflow | undefined {
   return store.get(id)
 }
 
+const MAX_STORE_SIZE = Number(process.env.MAX_CHATFLOWS ?? 10_000)
+
 export function createChatflow(data: Partial<Chatflow>): Chatflow {
+  if (store.size >= MAX_STORE_SIZE) {
+    const oldestKey = store.keys().next().value
+    if (oldestKey) store.delete(oldestKey)
+  }
+
   const id = uuidv4()
   const timestamp = now()
 
@@ -60,10 +67,12 @@ export function updateChatflow(id: string, data: Partial<Chatflow>): Chatflow | 
   const existing = store.get(id)
   if (!existing) return undefined
 
+  const { id: _id, createdDate: _cd, ...safeData } = data
   const updated: Chatflow = {
     ...existing,
-    ...data,
+    ...safeData,
     id,
+    createdDate: existing.createdDate,
     updatedDate: now(),
   }
 

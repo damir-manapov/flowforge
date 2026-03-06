@@ -20,6 +20,7 @@ export interface SSECollectResult {
   durationMs: number
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: SSE spec parsing requires branching
 export function parseSSEChunk(chunk: string): SSEEvent[] {
   const events: SSEEvent[] = []
   const blocks = chunk.split(/\n\n+/)
@@ -36,12 +37,15 @@ export function parseSSEChunk(chunk: string): SSEEvent[] {
     const lines = trimmed.split('\n')
     for (const line of lines) {
       if (line.startsWith('event:')) {
-        event = line.slice(6).trim()
+        const raw = line.slice(6)
+        event = raw.startsWith(' ') ? raw.slice(1) : raw
       } else if (line.startsWith('data:')) {
-        const value = line.slice(5)
+        const raw = line.slice(5)
+        const value = raw.startsWith(' ') ? raw.slice(1) : raw
         data += data ? `\n${value}` : value
       } else if (line.startsWith('id:')) {
-        id = line.slice(3).trim()
+        const raw = line.slice(3)
+        id = raw.startsWith(' ') ? raw.slice(1) : raw
       } else if (line.startsWith('retry:')) {
         const val = Number.parseInt(line.slice(6).trim(), 10)
         if (!Number.isNaN(val)) {
@@ -51,7 +55,7 @@ export function parseSSEChunk(chunk: string): SSEEvent[] {
     }
 
     if (data || event) {
-      events.push({ event, data: data.trim(), id, retry })
+      events.push({ event, data, id, retry })
     }
   }
 

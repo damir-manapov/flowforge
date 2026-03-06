@@ -25,6 +25,11 @@ export const PredictionResponseSchema = z.object({
   chatId: z.string(),
   chatMessageId: z.string(),
   sessionId: z.string(),
+  sourceDocuments: z.array(z.unknown()).optional(),
+  usedTools: z.array(z.unknown()).optional(),
+  fileAnnotations: z.array(z.unknown()).optional(),
+  agentReasoning: z.array(z.unknown()).optional(),
+  memoryType: z.string().nullable().optional(),
 })
 
 export const ErrorResponseSchema = z

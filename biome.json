@@ -16,6 +16,12 @@
       "style": {
         "useConst": "error",
         "noNonNullAssertion": "error"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "warn",
+          "options": { "maxAllowedComplexity": 30 }
+        }
       }
     }
   },

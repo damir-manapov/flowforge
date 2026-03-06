@@ -136,8 +136,13 @@ tests/integration/
 | Variable | Description | Default |
 |---|---|---|
 | `PORT` | Server listen port | `3000` |
+| `HOST` | Server bind address | `0.0.0.0` |
+| `LOG_LEVEL` | Pino log level (`debug`, `info`, `warn`, `error`) | `info` |
 | `CORS_ORIGIN` | Allowed CORS origins (comma-separated) | `*` |
+| `RATE_LIMIT_MAX` | Max requests per minute per IP | `200` |
+| `BODY_LIMIT` | Max request body size in bytes | `2097152` (2 MB) |
 | `STUB_TOKEN_DELAY_MS` | Delay between SSE tokens in streaming mode | `50` |
+| `MAX_CHATFLOWS` | Max chatflows in memory (LRU eviction) | `10000` |
 
 ### Tests (`apps/compat-tests`)
 

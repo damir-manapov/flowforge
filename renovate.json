@@ -13,6 +13,14 @@
       "groupName": "biome"
     },
     {
+      "matchPackagePatterns": ["vitest"],
+      "groupName": "vitest"
+    },
+    {
+      "matchPackagePatterns": ["typescript"],
+      "groupName": "typescript"
+    },
+    {
       "matchUpdateTypes": ["patch"],
       "automerge": true
     }

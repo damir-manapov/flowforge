@@ -7,6 +7,7 @@ import {
   lookupChatflow,
 } from '../services/predictionService.js'
 import { endSSE, initSSE, writeSSE } from '../sse/sseWriter.js'
+import { sleep } from '../utils/sleep.js'
 
 interface PredictionParams {
   flowId: string
@@ -97,8 +98,4 @@ export function registerPredictionRoutes(app: FastifyInstance): void {
       return reply.code(200).send(result)
     },
   )
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
 }
