@@ -14,7 +14,7 @@ bash renovate-check.sh
 
 echo ""
 echo "=== Vulnerability audit ==="
-pnpm audit || echo "⚠ pnpm audit found advisories (non-blocking)"
+pnpm audit
 
 echo ""
 echo "Health checks passed."
