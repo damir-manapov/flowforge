@@ -27,6 +27,11 @@
   "simple-git-hooks": {
     "pre-commit": "bash all-checks.sh"
   },
+  "pnpm": {
+    "overrides": {
+      "tsx": "-"
+    }
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.4.5",
     "simple-git-hooks": "^2.13.1",

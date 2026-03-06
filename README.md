@@ -38,7 +38,7 @@ cd apps/server
 pnpm dev
 ```
 
-Uses `tsx watch` with auto-reload on source changes.
+Uses `bun --watch` with auto-reload on source changes.
 
 ## Run Server Locally
 
