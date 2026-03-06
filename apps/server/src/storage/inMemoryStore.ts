@@ -10,7 +10,7 @@ export interface Chatflow {
   analytic: string | null
   speechToText: string | null
   category: string | null
-  type: string
+  type: 'CHATFLOW' | 'MULTIAGENT'
   createdDate: string
   updatedDate: string
 }

@@ -1,7 +1,5 @@
-import { v4 as uuidv4 } from 'uuid'
+import { randomUUID } from 'node:crypto'
 import { sanitizeFilename } from '../utils/sanitize.js'
-
-export { sanitizeFilename } from '../utils/sanitize.js'
 
 export interface UploadedFile {
   name: string
@@ -15,6 +13,6 @@ export function buildUploadedFile(filename: string, size: number, mimetype: stri
     name: sanitizeFilename(filename),
     size,
     type: mimetype,
-    id: uuidv4(),
+    id: randomUUID(),
   }
 }

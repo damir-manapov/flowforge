@@ -1,5 +1,5 @@
+import { randomUUID } from 'node:crypto'
 import type { FastifyReply } from 'fastify'
-import { v4 as uuidv4 } from 'uuid'
 import { endSSE, initSSE, startKeepAlive, writeSSE } from '../sse/sseWriter.js'
 import { sleep } from '../utils/sleep.js'
 
@@ -16,8 +16,10 @@ export interface PredictionResult {
   memoryType: string | null
 }
 
+const STUB_TOKEN_DELAY_MS = Math.max(0, Number(process.env.STUB_TOKEN_DELAY_MS ?? 50) || 0)
+
 export function getStubTokenDelayMs(): number {
-  return Number(process.env.STUB_TOKEN_DELAY_MS ?? 50)
+  return STUB_TOKEN_DELAY_MS
 }
 
 export function generateStubResponse(question: string): PredictionResult {
@@ -25,9 +27,9 @@ export function generateStubResponse(question: string): PredictionResult {
   return {
     text,
     question,
-    chatId: uuidv4(),
-    chatMessageId: uuidv4(),
-    sessionId: uuidv4(),
+    chatId: randomUUID(),
+    chatMessageId: randomUUID(),
+    sessionId: randomUUID(),
     sourceDocuments: [],
     usedTools: [],
     fileAnnotations: [],

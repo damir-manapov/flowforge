@@ -37,6 +37,21 @@ describe('server integration (inject)', () => {
     })
   })
 
+  describe('error handler', () => {
+    it('returns structured error for malformed JSON body', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/chatflows',
+        payload: '{ invalid json }',
+        headers: { 'content-type': 'application/json' },
+      })
+      expect(res.statusCode).toBe(400)
+      const body = JSON.parse(res.body)
+      expect(body.statusCode).toBe(400)
+      expect(body.error).toBeDefined()
+    })
+  })
+
   describe('chatflows CRUD', () => {
     it('creates and retrieves a chatflow', async () => {
       const create = await app.inject({
@@ -106,6 +121,22 @@ describe('server integration (inject)', () => {
         payload: {},
       })
       expect(res.statusCode).toBe(400)
+    })
+    it('returns 400 when PUT body is missing', async () => {
+      const create = await app.inject({
+        method: 'POST',
+        url: '/api/v1/chatflows',
+        payload: { name: 'put-test' },
+      })
+      const { id } = JSON.parse(create.body)
+
+      const res = await app.inject({
+        method: 'PUT',
+        url: `/api/v1/chatflows/${id}`,
+      })
+      expect(res.statusCode).toBe(400)
+      const body = JSON.parse(res.body)
+      expect(body.message).toBe('Request body is required')
     })
   })
 

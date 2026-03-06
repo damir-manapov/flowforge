@@ -1,4 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
+import { randomUUID } from 'node:crypto'
 import {
   type Chatflow,
   deleteChatflow as deleteFromStore,
@@ -27,7 +27,7 @@ export function createChatflow(data: Partial<Chatflow>, log?: { warn: (msg: stri
     }
   }
 
-  const id = uuidv4()
+  const id = randomUUID()
   const timestamp = now()
 
   const chatflow: Chatflow = {

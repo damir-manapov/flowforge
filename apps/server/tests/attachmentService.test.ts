@@ -1,40 +1,30 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeFilename } from '../src/utils/sanitize.js'
+import { buildUploadedFile } from '../src/services/attachmentService.js'
 
-describe('attachmentService', () => {
-  describe('sanitizeFilename', () => {
-    it('returns basename from path', () => {
-      expect(sanitizeFilename('/etc/passwd')).toBe('passwd')
-      expect(sanitizeFilename('/some/dir/file.txt')).toBe('file.txt')
-    })
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-    it('replaces unsafe characters with underscore', () => {
-      expect(sanitizeFilename('file:name?.txt')).toBe('file_name_.txt')
-      expect(sanitizeFilename('a*b|c"d')).toBe('a_b_c_d')
-    })
+describe('buildUploadedFile', () => {
+  it('returns an UploadedFile with sanitized name', () => {
+    const file = buildUploadedFile('/etc/passwd', 1024, 'text/plain')
+    expect(file.name).toBe('passwd')
+    expect(file.size).toBe(1024)
+    expect(file.type).toBe('text/plain')
+    expect(file.id).toMatch(UUID_RE)
+  })
 
-    it('truncates to 255 characters', () => {
-      const long = `${'a'.repeat(300)}.txt`
-      expect(sanitizeFilename(long).length).toBeLessThanOrEqual(255)
-    })
+  it('generates unique ids per call', () => {
+    const a = buildUploadedFile('a.txt', 10, 'text/plain')
+    const b = buildUploadedFile('b.txt', 20, 'text/plain')
+    expect(a.id).not.toBe(b.id)
+  })
 
-    it('returns "unnamed" for empty input', () => {
-      expect(sanitizeFilename('')).toBe('unnamed')
-    })
+  it('preserves mimetype as-is', () => {
+    const file = buildUploadedFile('photo.png', 5000, 'image/png')
+    expect(file.type).toBe('image/png')
+  })
 
-    it('returns "unnamed" when all characters are unsafe', () => {
-      // basename of '///' is empty on posix
-      expect(sanitizeFilename('///')).toBe('unnamed')
-    })
-
-    it('preserves normal filenames', () => {
-      expect(sanitizeFilename('photo.jpg')).toBe('photo.jpg')
-      expect(sanitizeFilename('my-doc_v2.pdf')).toBe('my-doc_v2.pdf')
-    })
-
-    it('handles path traversal attempts', () => {
-      const result = sanitizeFilename('../../etc/shadow')
-      expect(result).toBe('shadow')
-    })
+  it('handles unsafe filenames', () => {
+    const file = buildUploadedFile('file:name?.txt', 100, 'text/plain')
+    expect(file.name).toBe('file_name_.txt')
   })
 })

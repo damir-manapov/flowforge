@@ -39,6 +39,17 @@ export async function buildServer() {
     },
   })
 
+  app.setErrorHandler((error, _request, reply) => {
+    const err = error as Record<string, unknown>
+    const code = typeof err.statusCode === 'number' ? err.statusCode : 500
+    const msg = error instanceof Error ? error.message : 'Something went wrong'
+    reply.status(code).send({
+      statusCode: code,
+      error: code < 500 ? msg : 'Internal Server Error',
+      message: code < 500 ? msg : 'Something went wrong',
+    })
+  })
+
   app.setNotFoundHandler((_req, reply) => {
     reply.status(404).send({
       statusCode: 404,

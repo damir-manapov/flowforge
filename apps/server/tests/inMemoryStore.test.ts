@@ -26,7 +26,7 @@ function makeChatflow(overrides: Partial<Chatflow> = {}): Chatflow {
     analytic: null,
     speechToText: null,
     category: null,
-    type: 'CHATFLOW',
+    type: 'CHATFLOW' as const,
     createdDate: '2024-01-01T00:00:00.000Z',
     updatedDate: '2024-01-01T00:00:00.000Z',
     ...overrides,
