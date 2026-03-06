@@ -1,0 +1,21 @@
+{
+  "name": "@flowforge/test-utils",
+  "version": "0.0.1",
+  "private": true,
+  "author": "Damir Manapov",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "zod": "^3.25.0"
+  }
+}
