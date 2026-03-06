@@ -5,9 +5,9 @@ import {
   deleteChatflow,
   getAllChatflows,
   getChatflowById,
-  isValidUUID,
   updateChatflow,
 } from '../services/chatflowService.js'
+import { isValidUUID } from '../utils/validation.js'
 
 interface IdParams {
   id: string

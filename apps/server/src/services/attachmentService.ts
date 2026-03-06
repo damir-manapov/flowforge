@@ -1,20 +1,13 @@
-import { basename } from 'node:path'
 import { v4 as uuidv4 } from 'uuid'
+import { sanitizeFilename } from '../utils/sanitize.js'
+
+export { sanitizeFilename } from '../utils/sanitize.js'
 
 export interface UploadedFile {
   name: string
   size: number
   type: string
   id: string
-}
-
-const UNSAFE_FILENAME_RE = /[/\\:*?"<>|]/g
-
-/** Strip path traversal and control characters from user-supplied filenames */
-export function sanitizeFilename(raw: string): string {
-  const base = basename(raw)
-  const cleaned = base.replace(UNSAFE_FILENAME_RE, '_').slice(0, 255)
-  return cleaned || 'unnamed'
 }
 
 export function buildUploadedFile(filename: string, size: number, mimetype: string): UploadedFile {

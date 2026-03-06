@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeFilename } from '../src/services/attachmentService.js'
+import { sanitizeFilename } from '../src/utils/sanitize.js'
 
 describe('attachmentService', () => {
   describe('sanitizeFilename', () => {

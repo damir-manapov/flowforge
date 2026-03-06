@@ -1,4 +1,7 @@
+import type { FastifyReply } from 'fastify'
 import { v4 as uuidv4 } from 'uuid'
+import { endSSE, initSSE, startKeepAlive, writeSSE } from '../sse/sseWriter.js'
+import { sleep } from '../utils/sleep.js'
 
 export interface PredictionResult {
   text: string
@@ -35,4 +38,36 @@ export function generateStubResponse(question: string): PredictionResult {
 
 export function getStubTokens(): string[] {
   return ['This ', 'is ', 'a ', 'stub ', 'response ', 'from ', 'FlowForge.']
+}
+
+/** Stream a stub prediction response via SSE. Owns the full SSE lifecycle. */
+export async function streamPrediction(reply: FastifyReply, question: string): Promise<void> {
+  initSSE(reply)
+  const stopKeepAlive = startKeepAlive(reply)
+
+  try {
+    const tokens = getStubTokens()
+    const delayMs = getStubTokenDelayMs()
+
+    for (const token of tokens) {
+      if (reply.raw.destroyed) break
+      writeSSE(reply, 'token', token)
+      if (delayMs > 0) await sleep(delayMs)
+    }
+
+    if (!reply.raw.destroyed) {
+      const result = generateStubResponse(question)
+      const endPayload = JSON.stringify({
+        chatId: result.chatId,
+        chatMessageId: result.chatMessageId,
+        text: tokens.join(''),
+        question,
+        sessionId: result.sessionId,
+      })
+      writeSSE(reply, 'end', endPayload)
+    }
+  } finally {
+    stopKeepAlive()
+    endSSE(reply)
+  }
 }

@@ -1,8 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { getChatflowById, isValidUUID } from '../services/chatflowService.js'
-import { generateStubResponse, getStubTokenDelayMs, getStubTokens } from '../services/predictionService.js'
-import { endSSE, initSSE, startKeepAlive, writeSSE } from '../sse/sseWriter.js'
-import { sleep } from '../utils/sleep.js'
+import { getChatflowById } from '../services/chatflowService.js'
+import { generateStubResponse, streamPrediction } from '../services/predictionService.js'
+import { isValidUUID } from '../utils/validation.js'
 
 interface PredictionParams {
   flowId: string
@@ -58,38 +57,8 @@ export function registerPredictionRoutes(app: FastifyInstance): void {
         })
       }
 
-      const isStreaming = body.streaming === true
-
-      if (isStreaming) {
-        initSSE(reply)
-        const stopKeepAlive = startKeepAlive(reply)
-
-        try {
-          const tokens = getStubTokens()
-          const delayMs = getStubTokenDelayMs()
-
-          for (const token of tokens) {
-            if (reply.raw.destroyed) break
-            writeSSE(reply, 'token', token)
-            if (delayMs > 0) await sleep(delayMs)
-          }
-
-          if (!reply.raw.destroyed) {
-            const result = generateStubResponse(question)
-            const endPayload = JSON.stringify({
-              chatId: result.chatId,
-              chatMessageId: result.chatMessageId,
-              text: tokens.join(''),
-              question,
-              sessionId: result.sessionId,
-            })
-
-            writeSSE(reply, 'end', endPayload)
-          }
-        } finally {
-          stopKeepAlive()
-          endSSE(reply)
-        }
+      if (body.streaming === true) {
+        await streamPrediction(reply, question)
         return
       }
 

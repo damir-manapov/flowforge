@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isValidUUID } from '../src/services/chatflowService.js'
+import { isValidUUID } from '../src/utils/validation.js'
 
 describe('isValidUUID', () => {
   it('accepts a valid v4 UUID', () => {

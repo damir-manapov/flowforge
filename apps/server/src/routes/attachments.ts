@@ -1,7 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { UploadedFile } from '../services/attachmentService.js'
 import { buildUploadedFile } from '../services/attachmentService.js'
-import { getChatflowById, isValidUUID } from '../services/chatflowService.js'
+import { getChatflowById } from '../services/chatflowService.js'
+import { isValidUUID } from '../utils/validation.js'
 
 interface AttachmentParams {
   chatflowId: string

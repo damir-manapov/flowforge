@@ -1,16 +1,117 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createChatflow, deleteChatflow as deleteViaService, updateChatflow } from '../src/services/chatflowService.js'
+import type { Chatflow } from '../src/storage/inMemoryStore.js'
 import {
   clearStore,
-  createChatflow,
   deleteChatflow,
   getAllChatflows,
   getChatflowById,
-  updateChatflow,
+  oldestKey,
+  setChatflow,
+  storeSize,
 } from '../src/storage/inMemoryStore.js'
 
 afterEach(() => clearStore())
 
-describe('inMemoryStore', () => {
+function makeChatflow(overrides: Partial<Chatflow> = {}): Chatflow {
+  return {
+    id: 'test-id',
+    name: 'Test',
+    flowData: '{}',
+    deployed: false,
+    isPublic: false,
+    apikeyid: '',
+    chatbotConfig: null,
+    apiConfig: null,
+    analytic: null,
+    speechToText: null,
+    category: null,
+    type: 'CHATFLOW',
+    createdDate: '2024-01-01T00:00:00.000Z',
+    updatedDate: '2024-01-01T00:00:00.000Z',
+    ...overrides,
+  }
+}
+
+describe('inMemoryStore (CRUD)', () => {
+  describe('setChatflow / getChatflowById', () => {
+    it('stores and retrieves a chatflow', () => {
+      const cf = makeChatflow({ id: 'abc' })
+      setChatflow(cf)
+      expect(getChatflowById('abc')).toEqual(cf)
+    })
+
+    it('returns undefined for non-existent id', () => {
+      expect(getChatflowById('nope')).toBeUndefined()
+    })
+
+    it('overwrites existing entry with same id', () => {
+      setChatflow(makeChatflow({ id: 'x', name: 'Old' }))
+      setChatflow(makeChatflow({ id: 'x', name: 'New' }))
+      expect(getChatflowById('x')?.name).toBe('New')
+    })
+  })
+
+  describe('getAllChatflows', () => {
+    it('returns empty array initially', () => {
+      expect(getAllChatflows()).toEqual([])
+    })
+
+    it('returns all stored chatflows', () => {
+      setChatflow(makeChatflow({ id: 'a' }))
+      setChatflow(makeChatflow({ id: 'b' }))
+      expect(getAllChatflows()).toHaveLength(2)
+    })
+  })
+
+  describe('deleteChatflow', () => {
+    it('returns false for non-existent id', () => {
+      expect(deleteChatflow('nope')).toBe(false)
+    })
+
+    it('deletes an existing entry', () => {
+      setChatflow(makeChatflow({ id: 'del' }))
+      expect(deleteChatflow('del')).toBe(true)
+      expect(getChatflowById('del')).toBeUndefined()
+    })
+  })
+
+  describe('storeSize', () => {
+    it('returns 0 for empty store', () => {
+      expect(storeSize()).toBe(0)
+    })
+
+    it('reflects insertion count', () => {
+      setChatflow(makeChatflow({ id: 'a' }))
+      setChatflow(makeChatflow({ id: 'b' }))
+      expect(storeSize()).toBe(2)
+    })
+  })
+
+  describe('oldestKey', () => {
+    it('returns undefined for empty store', () => {
+      expect(oldestKey()).toBeUndefined()
+    })
+
+    it('returns first inserted key', () => {
+      setChatflow(makeChatflow({ id: 'first' }))
+      setChatflow(makeChatflow({ id: 'second' }))
+      expect(oldestKey()).toBe('first')
+    })
+  })
+
+  describe('clearStore', () => {
+    it('removes all entries', () => {
+      setChatflow(makeChatflow({ id: 'a' }))
+      setChatflow(makeChatflow({ id: 'b' }))
+      clearStore()
+      expect(getAllChatflows()).toEqual([])
+      expect(storeSize()).toBe(0)
+    })
+  })
+})
+
+describe('chatflowService (domain logic)', () => {
   describe('createChatflow', () => {
     it('creates a chatflow with defaults', () => {
       const cf = createChatflow({ name: 'Test' })
@@ -43,29 +144,6 @@ describe('inMemoryStore', () => {
     })
   })
 
-  describe('getChatflowById', () => {
-    it('returns undefined for non-existent id', () => {
-      expect(getChatflowById('nope')).toBeUndefined()
-    })
-
-    it('returns the chatflow if it exists', () => {
-      const cf = createChatflow({ name: 'Find me' })
-      expect(getChatflowById(cf.id)).toEqual(cf)
-    })
-  })
-
-  describe('getAllChatflows', () => {
-    it('returns empty array initially', () => {
-      expect(getAllChatflows()).toEqual([])
-    })
-
-    it('returns all created chatflows', () => {
-      createChatflow({ name: 'A' })
-      createChatflow({ name: 'B' })
-      expect(getAllChatflows()).toHaveLength(2)
-    })
-  })
-
   describe('updateChatflow', () => {
     it('returns undefined for non-existent id', () => {
       expect(updateChatflow('nope', { name: 'X' })).toBeUndefined()
@@ -94,32 +172,21 @@ describe('inMemoryStore', () => {
     it('bumps updatedDate', () => {
       const cf = createChatflow({ name: 'Bump' })
       const original = cf.updatedDate
-      // Small delay to ensure different timestamp
       const updated = updateChatflow(cf.id, { name: 'Bumped' })
       expect(updated?.updatedDate).toBeDefined()
-      // updatedDate should be >= original (may be same in fast execution)
       expect(new Date(updated?.updatedDate ?? '').getTime()).toBeGreaterThanOrEqual(new Date(original).getTime())
     })
   })
 
-  describe('deleteChatflow', () => {
+  describe('deleteChatflow (via service)', () => {
     it('returns false for non-existent id', () => {
-      expect(deleteChatflow('nope')).toBe(false)
+      expect(deleteViaService('nope')).toBe(false)
     })
 
     it('deletes an existing chatflow', () => {
       const cf = createChatflow({ name: 'Delete me' })
-      expect(deleteChatflow(cf.id)).toBe(true)
+      expect(deleteViaService(cf.id)).toBe(true)
       expect(getChatflowById(cf.id)).toBeUndefined()
-    })
-  })
-
-  describe('clearStore', () => {
-    it('removes all chatflows', () => {
-      createChatflow({ name: 'A' })
-      createChatflow({ name: 'B' })
-      clearStore()
-      expect(getAllChatflows()).toEqual([])
     })
   })
 
@@ -127,7 +194,7 @@ describe('inMemoryStore', () => {
     it('evicts the oldest entry when store is full', async () => {
       vi.stubEnv('MAX_CHATFLOWS', '3')
       vi.resetModules()
-      const mod = await import('../src/storage/inMemoryStore.js')
+      const mod = await import('../src/services/chatflowService.js')
 
       const first = mod.createChatflow({ name: 'first' })
       mod.createChatflow({ name: 'second' })
@@ -136,11 +203,8 @@ describe('inMemoryStore', () => {
       const log = { warn: vi.fn() }
       const fourth = mod.createChatflow({ name: 'fourth' }, log)
 
-      // Oldest (first) was evicted
       expect(mod.getChatflowById(first.id)).toBeUndefined()
-      // Fourth exists
       expect(mod.getChatflowById(fourth.id)).toBeDefined()
-      // Log was called
       expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('evicted chatflow'))
       expect(log.warn).toHaveBeenCalledWith(expect.stringContaining(first.id))
 
