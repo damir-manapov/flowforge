@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { GoldenComparator } from '../src/golden-comparator.js'
@@ -9,7 +9,6 @@ afterEach(() => cleanupTemp())
 function setupGolden(data: unknown): { comparator: GoldenComparator; testName: string } {
   const dir = createTempDir('goldens-')
   const officialDir = join(dir, 'official')
-  const { mkdirSync } = require('node:fs')
   mkdirSync(officialDir, { recursive: true })
   const testName = 'test-case'
   writeFileSync(join(officialDir, `${testName}.json`), JSON.stringify(data))
@@ -20,7 +19,6 @@ describe('GoldenComparator', () => {
   describe('hasGolden', () => {
     it('returns false when no golden file exists', () => {
       const dir = createTempDir('goldens-')
-      const { mkdirSync } = require('node:fs')
       mkdirSync(join(dir, 'official'), { recursive: true })
       const comparator = new GoldenComparator(dir)
       expect(comparator.hasGolden('nonexistent')).toBe(false)
@@ -35,7 +33,6 @@ describe('GoldenComparator', () => {
   describe('compare', () => {
     it('returns diff when no golden file exists', () => {
       const dir = createTempDir('goldens-')
-      const { mkdirSync } = require('node:fs')
       mkdirSync(join(dir, 'official'), { recursive: true })
       const comparator = new GoldenComparator(dir)
       const diffs = comparator.compare('missing', { data: 1 })

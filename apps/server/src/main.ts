@@ -14,8 +14,11 @@ async function main() {
     process.exit(1)
   }
 
+  let closing = false
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     process.on(signal, async () => {
+      if (closing) return
+      closing = true
       app.log.info(`Received ${signal}, shutting down`)
       await app.close()
       process.exit(0)

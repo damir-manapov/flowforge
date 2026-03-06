@@ -17,9 +17,6 @@
   "scripts": {
     "build": "tsc -b"
   },
-  "dependencies": {
-    "zod": "^3.25.0"
-  },
   "devDependencies": {
     "@types/node": "^22.15.0"
   }

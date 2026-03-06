@@ -8,12 +8,6 @@ export interface UploadedFile {
   id: string
 }
 
-export interface AttachmentResult {
-  chatflowId: string
-  chatId: string
-  files: UploadedFile[]
-}
-
 const UNSAFE_FILENAME_RE = /[/\\:*?"<>|]/g
 
 /** Strip path traversal and control characters from user-supplied filenames */

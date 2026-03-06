@@ -44,7 +44,7 @@ Uses `tsx watch` with auto-reload on source changes.
 
 ```bash
 cd apps/server
-node dist/server.js
+node dist/main.js
 ```
 
 Or via Docker Compose:

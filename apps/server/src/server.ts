@@ -11,8 +11,12 @@ import { registerPredictionRoutes } from './routes/prediction.js'
 function parseCorsOrigin(): boolean | string | string[] {
   const raw = process.env.CORS_ORIGIN
   if (!raw || raw === '*') return true
-  const origins = raw.split(',').map((s) => s.trim())
-  return origins.length === 1 ? (origins[0] ?? true) : origins
+  const origins = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  if (origins.length === 0) return true
+  return origins.length === 1 ? (origins[0] as string) : origins
 }
 
 export async function buildServer() {

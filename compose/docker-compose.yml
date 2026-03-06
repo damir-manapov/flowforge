@@ -1,11 +1,4 @@
 services:
-  starter:
-    image: alpine:3.21
-    command: ["echo", "All services are ready"]
-    depends_on:
-      flowforge-server:
-        condition: service_healthy
-
   flowforge-server:
     build:
       context: ..

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   clearStore,
   createChatflow,
@@ -120,6 +120,32 @@ describe('inMemoryStore', () => {
       createChatflow({ name: 'B' })
       clearStore()
       expect(getAllChatflows()).toEqual([])
+    })
+  })
+
+  describe('bounded eviction', () => {
+    it('evicts the oldest entry when store is full', async () => {
+      vi.stubEnv('MAX_CHATFLOWS', '3')
+      vi.resetModules()
+      const mod = await import('../src/storage/inMemoryStore.js')
+
+      const first = mod.createChatflow({ name: 'first' })
+      mod.createChatflow({ name: 'second' })
+      mod.createChatflow({ name: 'third' })
+
+      const log = { warn: vi.fn() }
+      const fourth = mod.createChatflow({ name: 'fourth' }, log)
+
+      // Oldest (first) was evicted
+      expect(mod.getChatflowById(first.id)).toBeUndefined()
+      // Fourth exists
+      expect(mod.getChatflowById(fourth.id)).toBeDefined()
+      // Log was called
+      expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('evicted chatflow'))
+      expect(log.warn).toHaveBeenCalledWith(expect.stringContaining(first.id))
+
+      mod.clearStore()
+      vi.unstubAllEnvs()
     })
   })
 })

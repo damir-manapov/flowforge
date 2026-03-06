@@ -48,9 +48,6 @@ importers:
       fastify:
         specifier: ^5.4.0
         version: 5.8.1
-      pino:
-        specifier: ^9.8.0
-        version: 9.14.0
       uuid:
         specifier: ^11.1.0
         version: 11.1.0
@@ -66,10 +63,6 @@ importers:
         version: 4.21.0
 
   packages/test-utils:
-    dependencies:
-      zod:
-        specifier: ^3.25.0
-        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.15.0

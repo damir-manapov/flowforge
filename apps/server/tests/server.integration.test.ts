@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildServer } from '../src/server.js'
 import { clearStore } from '../src/storage/inMemoryStore.js'
 
@@ -7,6 +7,7 @@ describe('server integration (inject)', () => {
   let app: FastifyInstance
 
   beforeEach(async () => {
+    vi.stubEnv('LOG_LEVEL', 'silent')
     clearStore()
     app = await buildServer()
     await app.ready()
@@ -15,6 +16,7 @@ describe('server integration (inject)', () => {
   afterEach(async () => {
     await app.close()
     clearStore()
+    vi.unstubAllEnvs()
   })
 
   describe('ping', () => {
@@ -159,6 +161,39 @@ describe('server integration (inject)', () => {
       const body = JSON.parse(res.body)
       expect(body.text).toBe('This is a stub response from FlowForge.')
       expect(body.question).toBe('Hello')
+    })
+
+    it('returns SSE stream for streaming prediction', async () => {
+      vi.stubEnv('STUB_TOKEN_DELAY_MS', '0')
+      const create = await app.inject({
+        method: 'POST',
+        url: '/api/v1/chatflows',
+        payload: { name: 'stream-test' },
+      })
+      const { id } = JSON.parse(create.body)
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/v1/prediction/${id}`,
+        payload: { question: 'Hello', streaming: true },
+      })
+      expect(res.statusCode).toBe(200)
+
+      const lines = res.body.split('\n')
+      const events = lines.filter((l: string) => l.startsWith('event: '))
+      const tokenEvents = events.filter((e: string) => e === 'event: token')
+      const endEvents = events.filter((e: string) => e === 'event: end')
+
+      expect(tokenEvents.length).toBeGreaterThan(0)
+      expect(endEvents).toHaveLength(1)
+
+      // Verify end event contains valid JSON payload
+      const endIdx = lines.findIndex((l: string) => l === 'event: end')
+      const endDataLine = lines[endIdx + 1]
+      expect(endDataLine).toBeDefined()
+      const endPayload = JSON.parse(endDataLine?.replace('data: ', '') ?? '')
+      expect(endPayload.question).toBe('Hello')
+      expect(endPayload.chatId).toBeDefined()
     })
   })
 

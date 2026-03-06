@@ -6,6 +6,7 @@ export function writeSSE(reply: FastifyReply, event: string, data: string): void
   reply.raw.write(payload)
 }
 
+/** @internal — not yet used in production; available for future keepalive scheduling */
 export function writeKeepAlive(reply: FastifyReply): void {
   if (reply.raw.destroyed) return
   reply.raw.write(': keepalive\n\n')

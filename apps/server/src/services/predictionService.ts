@@ -13,10 +13,8 @@ export interface PredictionResult {
   memoryType: string | null
 }
 
-const STUB_TOKEN_DELAY_MS = Number(process.env.STUB_TOKEN_DELAY_MS ?? 50)
-
 export function getStubTokenDelayMs(): number {
-  return STUB_TOKEN_DELAY_MS
+  return Number(process.env.STUB_TOKEN_DELAY_MS ?? 50)
 }
 
 export function generateStubResponse(question: string): PredictionResult {

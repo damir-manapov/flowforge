@@ -31,12 +31,15 @@ export function getChatflowById(id: string): Chatflow | undefined {
   return store.get(id)
 }
 
-const MAX_STORE_SIZE = Number(process.env.MAX_CHATFLOWS ?? 10_000)
+const MAX_STORE_SIZE = Math.max(1, Number(process.env.MAX_CHATFLOWS ?? 10_000) || 10_000)
 
-export function createChatflow(data: Partial<Chatflow>): Chatflow {
+export function createChatflow(data: Partial<Chatflow>, log?: { warn: (msg: string) => void }): Chatflow {
   if (store.size >= MAX_STORE_SIZE) {
     const oldestKey = store.keys().next().value
-    if (oldestKey) store.delete(oldestKey)
+    if (oldestKey) {
+      store.delete(oldestKey)
+      log?.warn(`Store full (max=${MAX_STORE_SIZE}), evicted chatflow ${oldestKey}`)
+    }
   }
 
   const id = uuidv4()

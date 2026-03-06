@@ -6,12 +6,10 @@ WORKDIR /app
 
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/server/package.json apps/server/
-COPY packages/test-utils/package.json packages/test-utils/
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --filter @flowforge/server
 
 COPY tsconfig.json tsconfig.check.json ./
-COPY packages/test-utils/ packages/test-utils/
 COPY apps/server/ apps/server/
 
 RUN pnpm build

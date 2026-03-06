@@ -62,7 +62,8 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
       })
     }
 
-    const chatflow = createChatflow(body)
+    const chatflow = createChatflow(body, request.log)
+    // 200 intentional — matches Flowise behavior (not 201)
     return reply.code(200).send(chatflow)
   })
 

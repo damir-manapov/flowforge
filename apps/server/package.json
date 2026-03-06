@@ -15,7 +15,6 @@
     "@fastify/multipart": "^9.0.0",
     "@fastify/cors": "^11.0.0",
     "@fastify/rate-limit": "^10.0.0",
-    "pino": "^9.8.0",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
