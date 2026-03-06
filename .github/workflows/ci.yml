@@ -82,7 +82,7 @@ jobs:
         run: pnpm install --frozen-lockfile && pnpm build
 
       - name: Start reimpl server
-        run: node apps/server/dist/server.js &
+        run: node apps/server/dist/main.js &
         env:
           PORT: "3000"
           LOG_LEVEL: silent

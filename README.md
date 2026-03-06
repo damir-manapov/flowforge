@@ -189,6 +189,14 @@ Run unit tests for shared packages (normalize, SSE parser, concurrency, retry):
 pnpm vitest run
 ```
 
+## Quality Checks
+
+```bash
+bash check.sh          # Format, lint, typecheck, unit tests
+bash health.sh         # Gitleaks, renovate, pnpm audit
+bash all-checks.sh     # Both (runs as pre-commit hook)
+```
+
 ## CI
 
 GitHub Actions runs on every push/PR:

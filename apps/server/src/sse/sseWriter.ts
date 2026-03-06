@@ -18,10 +18,11 @@ export function endSSE(reply: FastifyReply): void {
 }
 
 export function initSSE(reply: FastifyReply): void {
-  reply.raw.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-    'X-Accel-Buffering': 'no',
-  })
+  reply
+    .header('Content-Type', 'text/event-stream')
+    .header('Cache-Control', 'no-cache')
+    .header('Connection', 'keep-alive')
+    .header('X-Accel-Buffering', 'no')
+    .status(200)
+  reply.raw.flushHeaders()
 }

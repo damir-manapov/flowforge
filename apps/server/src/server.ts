@@ -8,9 +8,6 @@ import { registerChatflowRoutes } from './routes/chatflows.js'
 import { registerPingRoutes } from './routes/ping.js'
 import { registerPredictionRoutes } from './routes/prediction.js'
 
-const PORT = Number(process.env.PORT ?? 3000)
-const HOST = process.env.HOST ?? '0.0.0.0'
-
 function parseCorsOrigin(): boolean | string | string[] {
   const raw = process.env.CORS_ORIGIN
   if (!raw || raw === '*') return true
@@ -38,6 +35,14 @@ export async function buildServer() {
     },
   })
 
+  app.setNotFoundHandler((_req, reply) => {
+    reply.status(404).send({
+      statusCode: 404,
+      error: 'Not Found',
+      message: 'Route not found',
+    })
+  })
+
   registerPingRoutes(app)
   registerChatflowRoutes(app)
   registerPredictionRoutes(app)
@@ -45,25 +50,3 @@ export async function buildServer() {
 
   return app
 }
-
-async function main() {
-  const app = await buildServer()
-
-  try {
-    await app.listen({ port: PORT, host: HOST })
-    app.log.info(`Server listening on ${HOST}:${PORT}`)
-  } catch (err) {
-    app.log.error(err)
-    process.exit(1)
-  }
-
-  for (const signal of ['SIGINT', 'SIGTERM'] as const) {
-    process.on(signal, async () => {
-      app.log.info(`Received ${signal}, shutting down`)
-      await app.close()
-      process.exit(0)
-    })
-  }
-}
-
-main()

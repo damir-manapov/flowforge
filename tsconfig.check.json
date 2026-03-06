@@ -16,6 +16,12 @@
     "noFallthroughCasesInSwitch": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["packages/*/src/**/*.ts", "apps/*/src/**/*.ts", "apps/*/tests/**/*.ts"],
+  "include": [
+    "packages/*/src/**/*.ts",
+    "apps/*/src/**/*.ts",
+    "apps/*/tests/**/*.ts",
+    "*.config.ts",
+    "apps/*/vitest.config.ts"
+  ],
   "exclude": ["node_modules", "**/dist"]
 }

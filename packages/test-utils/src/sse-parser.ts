@@ -86,6 +86,11 @@ export async function collectSSE(url: string, options: SSEOptions = {}): Promise
       signal: controller.signal,
     })
 
+    if (!response.ok) {
+      const body = await response.text()
+      throw new Error(`SSE request failed with status ${response.status}: ${body.slice(0, 200)}`)
+    }
+
     if (!response.body) {
       throw new Error(`SSE response has no body (status=${response.status})`)
     }

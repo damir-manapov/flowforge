@@ -1,11 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { isValidUUID } from '../services/chatflowService.js'
-import {
-  generateStubResponse,
-  getStubTokenDelayMs,
-  getStubTokens,
-  lookupChatflow,
-} from '../services/predictionService.js'
+import { getChatflowById, isValidUUID } from '../services/chatflowService.js'
+import { generateStubResponse, getStubTokenDelayMs, getStubTokens } from '../services/predictionService.js'
 import { endSSE, initSSE, writeSSE } from '../sse/sseWriter.js'
 import { sleep } from '../utils/sleep.js'
 
@@ -34,7 +29,7 @@ export function registerPredictionRoutes(app: FastifyInstance): void {
         })
       }
 
-      const chatflow = lookupChatflow(flowId)
+      const chatflow = getChatflowById(flowId)
 
       if (!chatflow) {
         return reply.code(404).send({

@@ -1,6 +1,5 @@
 import { basename } from 'node:path'
 import { v4 as uuidv4 } from 'uuid'
-import { getChatflowById } from '../storage/inMemoryStore.js'
 
 export interface UploadedFile {
   name: string
@@ -22,10 +21,6 @@ export function sanitizeFilename(raw: string): string {
   const base = basename(raw)
   const cleaned = base.replace(UNSAFE_FILENAME_RE, '_').slice(0, 255)
   return cleaned || 'unnamed'
-}
-
-export function lookupChatflow(chatflowId: string) {
-  return getChatflowById(chatflowId)
 }
 
 export function buildUploadedFile(filename: string, size: number, mimetype: string): UploadedFile {

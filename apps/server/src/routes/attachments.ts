@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { UploadedFile } from '../services/attachmentService.js'
-import { buildUploadedFile, lookupChatflow } from '../services/attachmentService.js'
-import { isValidUUID } from '../services/chatflowService.js'
+import { buildUploadedFile } from '../services/attachmentService.js'
+import { getChatflowById, isValidUUID } from '../services/chatflowService.js'
 
 interface AttachmentParams {
   chatflowId: string
@@ -30,7 +30,7 @@ export function registerAttachmentRoutes(app: FastifyInstance): void {
         })
       }
 
-      const chatflow = lookupChatflow(chatflowId)
+      const chatflow = getChatflowById(chatflowId)
       if (!chatflow) {
         return reply.code(404).send({
           statusCode: 404,

@@ -7,8 +7,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b",
-    "start": "node dist/server.js",
-    "dev": "tsx watch src/server.ts"
+    "start": "node dist/main.js",
+    "dev": "tsx watch src/main.ts"
   },
   "dependencies": {
     "fastify": "^5.4.0",

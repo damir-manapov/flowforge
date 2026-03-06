@@ -1,6 +1,4 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { Chatflow } from '../storage/inMemoryStore.js'
-import { getChatflowById } from '../storage/inMemoryStore.js'
 
 export interface PredictionResult {
   text: string
@@ -35,10 +33,6 @@ export function generateStubResponse(question: string): PredictionResult {
     agentReasoning: [],
     memoryType: null,
   }
-}
-
-export function lookupChatflow(flowId: string): Chatflow | undefined {
-  return getChatflowById(flowId)
 }
 
 export function getStubTokens(): string[] {

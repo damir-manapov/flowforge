@@ -62,7 +62,13 @@ export class HttpClient {
         status: response.status,
         headers: response.headers,
         text,
-        json: <T = unknown>() => JSON.parse(text) as T,
+        json: <T = unknown>() => {
+          try {
+            return JSON.parse(text) as T
+          } catch {
+            throw new Error(`Failed to parse JSON response (status=${response.status}): ${text.slice(0, 200)}`)
+          }
+        },
       }
     } finally {
       clearTimeout(timer)
