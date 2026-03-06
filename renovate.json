@@ -23,6 +23,11 @@
     {
       "matchUpdateTypes": ["patch"],
       "automerge": true
+    },
+    {
+      "matchPackageNames": ["flowiseai/flowise"],
+      "allowedVersions": "<2.0.0",
+      "description": "Flowise v3 does not exist as a Docker tag; pin to 1.x"
     }
   ]
 }
