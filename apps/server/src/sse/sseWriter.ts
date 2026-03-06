@@ -1,12 +1,15 @@
 import type { FastifyReply } from 'fastify'
 
 export function writeSSE(reply: FastifyReply, event: string, data: string): void {
+  if (reply.raw.destroyed) return
   const payload = `event: ${event}\ndata: ${data}\n\n`
   reply.raw.write(payload)
 }
 
 export function endSSE(reply: FastifyReply): void {
-  reply.raw.end()
+  if (!reply.raw.destroyed) {
+    reply.raw.end()
+  }
 }
 
 export function initSSE(reply: FastifyReply): void {

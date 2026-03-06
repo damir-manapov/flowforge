@@ -1,7 +1,12 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { v4 as uuidv4 } from 'uuid'
+import { isValidUUID } from '../services/chatflowService.js'
+import {
+  generateStubResponse,
+  getStubTokenDelayMs,
+  getStubTokens,
+  lookupChatflow,
+} from '../services/predictionService.js'
 import { endSSE, initSSE, writeSSE } from '../sse/sseWriter.js'
-import { getChatflowById } from '../storage/inMemoryStore.js'
 
 interface PredictionParams {
   flowId: string
@@ -19,7 +24,16 @@ export function registerPredictionRoutes(app: FastifyInstance): void {
     '/api/v1/prediction/:flowId',
     async (request: FastifyRequest<{ Params: PredictionParams }>, reply: FastifyReply) => {
       const { flowId } = request.params
-      const chatflow = getChatflowById(flowId)
+
+      if (!isValidUUID(flowId)) {
+        return reply.code(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: `Invalid flowId format: ${flowId}`,
+        })
+      }
+
+      const chatflow = lookupChatflow(flowId)
 
       if (!chatflow) {
         return reply.code(404).send({
@@ -50,48 +64,37 @@ export function registerPredictionRoutes(app: FastifyInstance): void {
 
       const isStreaming = body.streaming === true
 
-      const chatId = uuidv4()
-      const chatMessageId = uuidv4()
-      const sessionId = uuidv4()
-
       if (isStreaming) {
         initSSE(reply)
 
-        const stubTokens = ['This ', 'is ', 'a ', 'stub ', 'response ', 'from ', 'FlowForge.']
+        const tokens = getStubTokens()
+        const delayMs = getStubTokenDelayMs()
 
-        for (const token of stubTokens) {
+        for (const token of tokens) {
+          if (reply.raw.destroyed) break
           writeSSE(reply, 'token', token)
-          await sleep(50)
+          if (delayMs > 0) await sleep(delayMs)
         }
 
-        const fullText = stubTokens.join('')
-        const endPayload = JSON.stringify({
-          chatId,
-          chatMessageId,
-          text: fullText,
-          question,
-          sessionId,
-        })
+        if (!reply.raw.destroyed) {
+          const result = generateStubResponse(question)
+          const endPayload = JSON.stringify({
+            chatId: result.chatId,
+            chatMessageId: result.chatMessageId,
+            text: tokens.join(''),
+            question,
+            sessionId: result.sessionId,
+          })
 
-        writeSSE(reply, 'end', endPayload)
+          writeSSE(reply, 'end', endPayload)
+        }
+
         endSSE(reply)
         return
       }
 
-      const responseText = 'This is a stub response from FlowForge.'
-
-      return reply.code(200).send({
-        text: responseText,
-        question,
-        chatId,
-        chatMessageId,
-        sessionId,
-        memoryType: null,
-        sourceDocuments: [],
-        usedTools: [],
-        fileAnnotations: [],
-        agentReasoning: [],
-      })
+      const result = generateStubResponse(question)
+      return reply.code(200).send(result)
     },
   )
 }

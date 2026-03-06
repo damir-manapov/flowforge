@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, Typecheck & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format
+        run: pnpm exec biome format --write .
+
+      - name: Lint
+        run: pnpm exec biome check --error-on-warnings .
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Typecheck (tests)
+        run: pnpm typecheck:tests
+
+      - name: Build
+        run: pnpm build
+
+      - name: Unit tests
+        run: pnpm test
+
+  compat:
+    name: Compat Tests (reimpl)
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v4
+
+      - name: Install & Build
+        run: pnpm install --frozen-lockfile && pnpm build
+
+      - name: Start reimpl server
+        run: node apps/server/dist/server.js &
+        env:
+          PORT: "3000"
+          LOG_LEVEL: silent
+
+      - name: Wait for server
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000/api/v1/ping && break
+            sleep 1
+          done
+
+      - name: Run compat tests
+        run: pnpm --filter @flowforge/compat-tests exec vitest run
+        env:
+          BASE_URL: http://localhost:3000/api/v1
+          TARGET_NAME: reimpl
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -f compose/Dockerfile -t flowforge:ci .

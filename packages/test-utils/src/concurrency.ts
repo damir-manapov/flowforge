@@ -12,22 +12,27 @@ export async function runConcurrent<T>(
   const limit = concurrency ?? tasks.length
   const startedAt = Date.now()
 
-  const results: PromiseSettledResult<T>[] = []
+  const results: PromiseSettledResult<T>[] = new Array(tasks.length)
   const executing: Promise<void>[] = []
 
-  for (const task of tasks) {
-    const p = task()
-      .then((value) => {
-        results.push({ status: 'fulfilled', value })
-      })
-      .catch((reason: unknown) => {
-        results.push({ status: 'rejected', reason })
-      })
-      .then(() => {
-        executing.splice(executing.indexOf(p), 1)
-      })
+  for (let taskIdx = 0; taskIdx < tasks.length; taskIdx++) {
+    const idx = taskIdx
+    const task = tasks[idx]
+    if (!task) continue
+
+    const p: Promise<void> = (async () => {
+      try {
+        const value = await task()
+        results[idx] = { status: 'fulfilled', value }
+      } catch (reason: unknown) {
+        results[idx] = { status: 'rejected', reason }
+      }
+    })()
 
     executing.push(p)
+    void p.then(() => {
+      executing.splice(executing.indexOf(p), 1)
+    })
 
     if (executing.length >= limit) {
       await Promise.race(executing)

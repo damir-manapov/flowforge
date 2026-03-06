@@ -1,3 +1,7 @@
+import { v4 as uuidv4 } from 'uuid'
+import type { Chatflow } from '../storage/inMemoryStore.js'
+import { getChatflowById } from '../storage/inMemoryStore.js'
+
 export interface PredictionInput {
   question: string
   streaming: boolean
@@ -18,6 +22,32 @@ export interface PredictionResult {
   memoryType: string | null
 }
 
-export function generateStubResponse(question: string): string {
-  return `This is a stub response from FlowForge for: ${question}`
+const STUB_TOKEN_DELAY_MS = Number(process.env.STUB_TOKEN_DELAY_MS ?? 50)
+
+export function getStubTokenDelayMs(): number {
+  return STUB_TOKEN_DELAY_MS
+}
+
+export function generateStubResponse(question: string): PredictionResult {
+  const text = 'This is a stub response from FlowForge.'
+  return {
+    text,
+    question,
+    chatId: uuidv4(),
+    chatMessageId: uuidv4(),
+    sessionId: uuidv4(),
+    sourceDocuments: [],
+    usedTools: [],
+    fileAnnotations: [],
+    agentReasoning: [],
+    memoryType: null,
+  }
+}
+
+export function lookupChatflow(flowId: string): Chatflow | undefined {
+  return getChatflowById(flowId)
+}
+
+export function getStubTokens(): string[] {
+  return ['This ', 'is ', 'a ', 'stub ', 'response ', 'from ', 'FlowForge.']
 }

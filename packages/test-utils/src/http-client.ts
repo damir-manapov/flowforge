@@ -39,6 +39,11 @@ export class HttpClient {
       ...options.headers,
     }
 
+    // Don't set Content-Type for FormData — the browser/runtime sets it with the boundary
+    if (options.body instanceof FormData) {
+      delete headers['Content-Type']
+    }
+
     const controller = new AbortController()
     const timeoutMs = options.timeout ?? 30_000
     const timer = setTimeout(() => controller.abort(), timeoutMs)
@@ -86,6 +91,14 @@ export class HttpClient {
 
   async delete(path: string, headers?: Record<string, string> | undefined): Promise<HttpResponse> {
     return this.request(path, { method: 'DELETE', ...(headers ? { headers } : {}) })
+  }
+
+  async patch(path: string, body: unknown, headers?: Record<string, string> | undefined): Promise<HttpResponse> {
+    return this.request(path, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify(body),
+    })
   }
 
   async postRaw(path: string, body: string, contentType: string): Promise<HttpResponse> {

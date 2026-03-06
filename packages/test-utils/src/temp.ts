@@ -25,8 +25,9 @@ export function cleanupTemp(): void {
   for (const dir of tempDirs) {
     try {
       rmSync(dir, { recursive: true, force: true })
-    } catch {
-      // Ignore cleanup errors
+    } catch (err) {
+      // Log but don't throw — cleanup failures shouldn't fail tests
+      console.warn(`[cleanupTemp] Failed to remove ${dir}:`, err)
     }
   }
   tempDirs.length = 0

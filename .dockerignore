@@ -1,0 +1,11 @@
+node_modules
+dist
+.git
+*.tsbuildinfo
+.env
+.env.*
+apps/compat-tests/goldens
+compose/
+*.md
+LICENSE
+.github/

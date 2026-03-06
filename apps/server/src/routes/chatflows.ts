@@ -1,12 +1,13 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import type { Chatflow } from '../storage/inMemoryStore.js'
 import {
+  type Chatflow,
   createChatflow,
   deleteChatflow,
   getAllChatflows,
   getChatflowById,
+  isValidUUID,
   updateChatflow,
-} from '../storage/inMemoryStore.js'
+} from '../services/chatflowService.js'
 
 interface IdParams {
   id: string
@@ -20,6 +21,15 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
 
   app.get('/api/v1/chatflows/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply: FastifyReply) => {
     const { id } = request.params
+
+    if (!isValidUUID(id)) {
+      return reply.code(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: `Invalid chatflow id format: ${id}`,
+      })
+    }
+
     const chatflow = getChatflowById(id)
 
     if (!chatflow) {
@@ -34,9 +44,17 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
   })
 
   app.post('/api/v1/chatflows', async (request: FastifyRequest, reply: FastifyReply) => {
-    const body = request.body as Partial<Chatflow>
+    const body = request.body as Partial<Chatflow> | null
 
-    if (!body.name) {
+    if (!body || typeof body !== 'object') {
+      return reply.code(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'Request body is required',
+      })
+    }
+
+    if (!body.name || typeof body.name !== 'string' || body.name.trim().length === 0) {
       return reply.code(400).send({
         statusCode: 400,
         error: 'Bad Request',
@@ -51,6 +69,14 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
   app.put('/api/v1/chatflows/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply: FastifyReply) => {
     const { id } = request.params
     const body = request.body as Partial<Chatflow>
+
+    if (!isValidUUID(id)) {
+      return reply.code(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: `Invalid chatflow id format: ${id}`,
+      })
+    }
 
     const updated = updateChatflow(id, body)
 
@@ -67,6 +93,15 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
 
   app.delete('/api/v1/chatflows/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply: FastifyReply) => {
     const { id } = request.params
+
+    if (!isValidUUID(id)) {
+      return reply.code(400).send({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: `Invalid chatflow id format: ${id}`,
+      })
+    }
+
     const deleted = deleteChatflow(id)
 
     if (!deleted) {

@@ -1,4 +1,20 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"]
+  "extends": ["config:recommended"],
+  "schedule": ["before 9am on monday"],
+  "automergeType": "pr",
+  "packageRules": [
+    {
+      "matchPackagePatterns": ["@fastify/*", "fastify"],
+      "groupName": "fastify"
+    },
+    {
+      "matchPackagePatterns": ["@biomejs/*"],
+      "groupName": "biome"
+    },
+    {
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    }
+  ]
 }

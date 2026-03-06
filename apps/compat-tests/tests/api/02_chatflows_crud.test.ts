@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ChatflowListSchema, ChatflowSchema, ErrorResponseSchema } from '../../src/schemas.js'
-import { client, log, recorder, shouldRecord } from '../../src/setup.js'
+import { client, log, recorder, shouldRecord, testConfig } from '../../src/setup.js'
 
 describe('02 — Chatflows CRUD', () => {
   let createdId: string
@@ -116,8 +116,9 @@ describe('02 — Chatflows CRUD', () => {
   it('GET /chatflows/:id returns error for missing id', async () => {
     const res = await client.get('/chatflows/00000000-0000-0000-0000-000000000000')
 
-    // Flowise returns 500, our reimpl returns 404
-    expect(res.status).toBeGreaterThanOrEqual(400)
+    // Flowise returns 500 (InternalFlowiseError), our reimpl returns 404
+    const expected = testConfig.targetName === 'reimpl' ? 404 : 500
+    expect(res.status).toBe(expected)
 
     const body = res.json()
     const parsed = ErrorResponseSchema.safeParse(body)
@@ -129,7 +130,8 @@ describe('02 — Chatflows CRUD', () => {
       flowData: '{"nodes":[],"edges":[]}',
     })
 
-    // Flowise returns 500, our reimpl returns 400
-    expect(res.status).toBeGreaterThanOrEqual(400)
+    // Flowise returns 500 (InternalFlowiseError), our reimpl returns 400
+    const expected = testConfig.targetName === 'reimpl' ? 400 : 500
+    expect(res.status).toBe(expected)
   })
 })

@@ -14,6 +14,11 @@ flowforge/
   compose/             — Docker Compose for running the server
 ```
 
+## Prerequisites
+
+- Node.js >= 22
+- pnpm 10.30.0 (corepack-managed via `packageManager` field)
+
 ## Install
 
 ```bash
@@ -25,6 +30,15 @@ pnpm install
 ```bash
 pnpm build
 ```
+
+## Development
+
+```bash
+cd apps/server
+pnpm dev
+```
+
+Uses `tsx watch` with auto-reload on source changes.
 
 ## Run Server Locally
 
@@ -40,6 +54,13 @@ pnpm compose:up
 ```
 
 Server listens on port 4000 (mapped from container port 3000).
+
+## Run Flowise (for recording/comparison)
+
+```bash
+pnpm compose:flowise:up    # Start Flowise on port 3001
+pnpm compose:flowise:down  # Stop Flowise
+```
 
 ## Run Tests
 
@@ -110,12 +131,23 @@ tests/integration/
 
 ## Environment Variables
 
+### Server (`apps/server`)
+
+| Variable | Description | Default |
+|---|---|---|
+| `PORT` | Server listen port | `3000` |
+| `CORS_ORIGIN` | Allowed CORS origins (comma-separated) | `*` |
+| `STUB_TOKEN_DELAY_MS` | Delay between SSE tokens in streaming mode | `50` |
+
+### Tests (`apps/compat-tests`)
+
 | Variable | Description | Default |
 |---|---|---|
 | `BASE_URL` | Server API base URL | — (required) |
 | `AUTH_TOKEN` | Bearer token for auth | — (optional) |
 | `TARGET_NAME` | `official` or `reimpl` | `reimpl` |
 | `RECORD_GOLDENS` | Set to `1` to record golden baselines | `0` |
+| `HAS_LLM` | Set to `1` if target has real LLM nodes | auto for reimpl |
 
 ## Adding New Compatibility Tests
 
@@ -143,3 +175,18 @@ pnpm compose:down      # Stop
 pnpm compose:restart   # Restart
 pnpm compose:reset     # Stop + remove volumes
 ```
+
+## Unit Tests
+
+Run unit tests for shared packages (normalize, SSE parser, concurrency, retry):
+
+```bash
+pnpm vitest run
+```
+
+## CI
+
+GitHub Actions runs on every push/PR:
+- **check** — lint, typecheck, unit tests
+- **compat** — build & run compat tests against reimplementation
+- **docker** — build Docker image

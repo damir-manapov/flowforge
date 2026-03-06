@@ -36,8 +36,18 @@ export function removeUnstableFields(obj: unknown): unknown {
   return result
 }
 
+function sortKeysDeep(value: unknown): unknown {
+  if (value === null || value === undefined || typeof value !== 'object') return value
+  if (Array.isArray(value)) return value.map(sortKeysDeep)
+
+  const sorted: Record<string, unknown> = {}
+  for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+    sorted[key] = sortKeysDeep((value as Record<string, unknown>)[key])
+  }
+  return sorted
+}
+
 export function normalize(data: unknown): JsonValue {
   const cleaned = removeUnstableFields(data)
-  const json = JSON.stringify(cleaned, Object.keys(cleaned as object).sort(), 2)
-  return JSON.parse(json) as JsonValue
+  return sortKeysDeep(cleaned) as JsonValue
 }

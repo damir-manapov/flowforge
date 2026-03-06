@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { v4 as uuidv4 } from 'uuid'
-import { getChatflowById } from '../storage/inMemoryStore.js'
+import type { UploadedFile } from '../services/attachmentService.js'
+import { buildUploadedFile, lookupChatflow } from '../services/attachmentService.js'
+import { isValidUUID } from '../services/chatflowService.js'
 
 interface AttachmentParams {
   chatflowId: string
@@ -13,7 +14,15 @@ export function registerAttachmentRoutes(app: FastifyInstance): void {
     async (request: FastifyRequest<{ Params: AttachmentParams }>, reply: FastifyReply) => {
       const { chatflowId, chatId } = request.params
 
-      const chatflow = getChatflowById(chatflowId)
+      if (!isValidUUID(chatflowId)) {
+        return reply.code(400).send({
+          statusCode: 400,
+          error: 'Bad Request',
+          message: `Invalid chatflowId format: ${chatflowId}`,
+        })
+      }
+
+      const chatflow = lookupChatflow(chatflowId)
       if (!chatflow) {
         return reply.code(404).send({
           statusCode: 404,
@@ -23,18 +32,16 @@ export function registerAttachmentRoutes(app: FastifyInstance): void {
       }
 
       const parts = request.parts()
-      const files: { name: string; size: number; type: string; id: string }[] = []
+      const files: UploadedFile[] = []
 
       for await (const part of parts) {
         if (part.type === 'file') {
-          const buffer = await part.toBuffer()
-          const id = uuidv4()
-          files.push({
-            name: part.filename,
-            size: buffer.length,
-            type: part.mimetype,
-            id,
-          })
+          // Stream-discard: count bytes without holding entire buffer in memory
+          let size = 0
+          for await (const chunk of part.file) {
+            size += chunk.length
+          }
+          files.push(buildUploadedFile(part.filename, size, part.mimetype))
         }
       }
 

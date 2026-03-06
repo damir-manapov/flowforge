@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { client, log } from '../../src/setup.js'
+import { client, log, testConfig } from '../../src/setup.js'
 
 describe('05 — Prediction Errors', () => {
   it('returns error for non-existent flowId', async () => {
@@ -10,8 +10,9 @@ describe('05 — Prediction Errors', () => {
 
     log.info('prediction 404 response', { status: res.status })
 
-    // Flowise returns 500, our reimpl returns 404
-    expect(res.status).toBeGreaterThanOrEqual(400)
+    // Flowise returns 500 (InternalFlowiseError), our reimpl returns 404
+    const expected = testConfig.targetName === 'reimpl' ? 404 : 500
+    expect(res.status).toBe(expected)
   })
 
   it('returns error for empty question', async () => {
