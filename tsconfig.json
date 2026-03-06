@@ -19,10 +19,6 @@
     "noFallthroughCasesInSwitch": true,
     "verbatimModuleSyntax": true
   },
-  "references": [
-    { "path": "packages/test-utils" },
-    { "path": "apps/server" },
-    { "path": "apps/compat-tests" }
-  ],
+  "references": [{ "path": "packages/test-utils" }, { "path": "apps/server" }, { "path": "apps/compat-tests" }],
   "files": []
 }

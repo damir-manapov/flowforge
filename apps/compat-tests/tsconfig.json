@@ -22,9 +22,7 @@
     "noFallthroughCasesInSwitch": true,
     "verbatimModuleSyntax": true
   },
-  "references": [
-    { "path": "../../packages/test-utils" }
-  ],
+  "references": [{ "path": "../../packages/test-utils" }],
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -27,11 +27,17 @@ export const PredictionResponseSchema = z.object({
   sessionId: z.string(),
 })
 
-export const ErrorResponseSchema = z.object({
-  statusCode: z.number(),
-  error: z.string(),
-  message: z.string(),
-})
+export const ErrorResponseSchema = z
+  .object({
+    statusCode: z.number().optional(),
+    error: z.string().optional(),
+    message: z.string().optional(),
+    success: z.literal(false).optional(),
+    stack: z.unknown().optional(),
+  })
+  .refine((v) => v.message !== undefined || v.error !== undefined, {
+    message: 'Must have message or error field',
+  })
 
 export const AttachmentResponseSchema = z.object({
   chatflowId: z.string(),

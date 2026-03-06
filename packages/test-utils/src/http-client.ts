@@ -1,8 +1,8 @@
 export interface HttpRequestOptions {
-  method?: string
-  headers?: Record<string, string>
-  body?: string | Buffer | FormData
-  timeout?: number
+  method?: string | undefined
+  headers?: Record<string, string> | undefined
+  body?: string | FormData | undefined
+  timeout?: number | undefined
 }
 
 export interface MultipartField {
@@ -26,7 +26,7 @@ export class HttpClient {
     this.baseUrl = baseUrl.replace(/\/+$/, '')
     this.defaultHeaders = {}
     if (authToken) {
-      this.defaultHeaders['Authorization'] = `Bearer ${authToken}`
+      this.defaultHeaders.Authorization = `Bearer ${authToken}`
     }
   }
 
@@ -64,11 +64,11 @@ export class HttpClient {
     }
   }
 
-  async get(path: string, headers?: Record<string, string>): Promise<HttpResponse> {
-    return this.request(path, { method: 'GET', headers })
+  async get(path: string, headers?: Record<string, string> | undefined): Promise<HttpResponse> {
+    return this.request(path, { method: 'GET', ...(headers ? { headers } : {}) })
   }
 
-  async post(path: string, body: unknown, headers?: Record<string, string>): Promise<HttpResponse> {
+  async post(path: string, body: unknown, headers?: Record<string, string> | undefined): Promise<HttpResponse> {
     return this.request(path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...headers },
@@ -76,7 +76,7 @@ export class HttpClient {
     })
   }
 
-  async put(path: string, body: unknown, headers?: Record<string, string>): Promise<HttpResponse> {
+  async put(path: string, body: unknown, headers?: Record<string, string> | undefined): Promise<HttpResponse> {
     return this.request(path, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...headers },
@@ -84,11 +84,11 @@ export class HttpClient {
     })
   }
 
-  async delete(path: string, headers?: Record<string, string>): Promise<HttpResponse> {
-    return this.request(path, { method: 'DELETE', headers })
+  async delete(path: string, headers?: Record<string, string> | undefined): Promise<HttpResponse> {
+    return this.request(path, { method: 'DELETE', ...(headers ? { headers } : {}) })
   }
 
-  async postRaw(path: string, body: string | Buffer, contentType: string): Promise<HttpResponse> {
+  async postRaw(path: string, body: string, contentType: string): Promise<HttpResponse> {
     return this.request(path, {
       method: 'POST',
       headers: { 'Content-Type': contentType },
@@ -99,7 +99,7 @@ export class HttpClient {
   async postMultipart(path: string, fields: MultipartField[]): Promise<HttpResponse> {
     const formData = new FormData()
     for (const field of fields) {
-      if (field.filename) {
+      if (field.filename && typeof field.value !== 'string') {
         formData.append(field.name, field.value, field.filename)
       } else {
         formData.append(field.name, field.value)

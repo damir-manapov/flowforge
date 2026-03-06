@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { client, shouldRecord, recorder, log } from '../../src/setup.js'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PredictionResponseSchema } from '../../src/schemas.js'
+import { client, hasLLM, log, recorder, shouldRecord } from '../../src/setup.js'
 
-describe('03 — Prediction (non-streaming)', () => {
+describe.skipIf(!hasLLM)('03 — Prediction (non-streaming)', () => {
   let chatflowId: string
 
   beforeAll(async () => {

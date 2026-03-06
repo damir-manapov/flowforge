@@ -8,7 +8,7 @@ const LEVEL_ORDER: Record<LogLevel, number> = {
 }
 
 function getMinLevel(): LogLevel {
-  const envLevel = process.env['LOG_LEVEL']
+  const envLevel = process.env.LOG_LEVEL
   if (envLevel && envLevel in LEVEL_ORDER) {
     return envLevel as LogLevel
   }

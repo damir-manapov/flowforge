@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { collectSSE } from '@flowforge/test-utils'
-import { client, shouldRecord, recorder, log, testConfig } from '../../src/setup.js'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { client, hasLLM, log, recorder, shouldRecord } from '../../src/setup.js'
 
-describe('04 — Prediction SSE Streaming', () => {
+describe.skipIf(!hasLLM)('04 — Prediction SSE Streaming', () => {
   let chatflowId: string
 
   beforeAll(async () => {

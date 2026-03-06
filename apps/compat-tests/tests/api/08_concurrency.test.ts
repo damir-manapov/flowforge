@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { runConcurrent } from '@flowforge/test-utils'
-import { client, log } from '../../src/setup.js'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { client, hasLLM, log } from '../../src/setup.js'
 
 describe('08 — Concurrency', () => {
   let chatflowId: string
@@ -8,7 +8,7 @@ describe('08 — Concurrency', () => {
   beforeAll(async () => {
     const res = await client.post('/chatflows', {
       name: 'concurrency-test-flow',
-      flowData: '{}',
+      flowData: '{"nodes":[],"edges":[]}',
       deployed: false,
       isPublic: false,
       apikeyid: '',
@@ -43,7 +43,7 @@ describe('08 — Concurrency', () => {
     expect(result.failed).toBe(0)
   })
 
-  it('handles 5 parallel prediction requests', async () => {
+  it.skipIf(!hasLLM)('handles 5 parallel prediction requests', async () => {
     const tasks = Array.from({ length: 5 }, (_, i) => async () => {
       const res = await client.post(`/prediction/${chatflowId}`, {
         question: `Parallel question ${i}`,
@@ -73,7 +73,7 @@ describe('08 — Concurrency', () => {
     const createTasks = Array.from({ length: 5 }, (_, i) => async () => {
       const res = await client.post('/chatflows', {
         name: `concurrent-flow-${i}`,
-        flowData: '{}',
+        flowData: '{"nodes":[],"edges":[]}',
         deployed: false,
         isPublic: false,
         apikeyid: '',

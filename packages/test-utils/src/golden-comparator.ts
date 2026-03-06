@@ -60,7 +60,10 @@ function deepDiff(path: string, expected: unknown, actual: unknown): GoldenDiff[
   }
 
   if (typeof expected === 'object' && expected !== null && typeof actual === 'object' && actual !== null) {
-    const allKeys = new Set([...Object.keys(expected as Record<string, unknown>), ...Object.keys(actual as Record<string, unknown>)])
+    const allKeys = new Set([
+      ...Object.keys(expected as Record<string, unknown>),
+      ...Object.keys(actual as Record<string, unknown>),
+    ])
     for (const key of allKeys) {
       const childPath = path ? `${path}.${key}` : key
       const expectedObj = expected as Record<string, unknown>

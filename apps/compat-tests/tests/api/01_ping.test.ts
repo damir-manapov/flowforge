@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { client, shouldRecord, recorder, log } from '../../src/setup.js'
+import { describe, expect, it } from 'vitest'
+import { client, log, recorder, shouldRecord } from '../../src/setup.js'
 
 describe('01 — Ping / Connectivity', () => {
   it('GET /ping returns 200', async () => {

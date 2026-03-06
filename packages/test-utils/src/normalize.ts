@@ -1,6 +1,19 @@
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
 
-const UNSTABLE_KEYS = new Set(['id', 'createdDate', 'updatedDate', 'date', 'timestamp', 'chatId', 'chatMessageId', 'sessionId', 'tokenCount', 'totalTokens', 'completionTokens', 'promptTokens'])
+const UNSTABLE_KEYS = new Set([
+  'id',
+  'createdDate',
+  'updatedDate',
+  'date',
+  'timestamp',
+  'chatId',
+  'chatMessageId',
+  'sessionId',
+  'tokenCount',
+  'totalTokens',
+  'completionTokens',
+  'promptTokens',
+])
 
 export function removeUnstableFields(obj: unknown): unknown {
   if (obj === null || obj === undefined) return obj

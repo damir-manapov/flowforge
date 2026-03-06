@@ -9,7 +9,7 @@
     "test": "vitest run",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "typecheck": "tsc -b --noEmit",
+    "typecheck": "tsc -b",
     "typecheck:tests": "tsc -p tsconfig.check.json",
     "compose:pull": "docker compose -f compose/docker-compose.yml pull",
     "compose:up": "docker compose -f compose/docker-compose.yml up -d --wait",

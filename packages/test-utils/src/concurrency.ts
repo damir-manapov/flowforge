@@ -5,7 +5,10 @@ export interface ConcurrentResult<T> {
   failed: number
 }
 
-export async function runConcurrent<T>(tasks: (() => Promise<T>)[], concurrency?: number | undefined): Promise<ConcurrentResult<T>> {
+export async function runConcurrent<T>(
+  tasks: (() => Promise<T>)[],
+  concurrency?: number | undefined,
+): Promise<ConcurrentResult<T>> {
   const limit = concurrency ?? tasks.length
   const startedAt = Date.now()
 

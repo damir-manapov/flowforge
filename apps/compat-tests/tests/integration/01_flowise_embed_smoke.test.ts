@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { client, log, testConfig } from '../../src/setup.js'
+import { describe, expect, it } from 'vitest'
+import { client, hasLLM, log, testConfig } from '../../src/setup.js'
 
 describe('Integration — Flowise Embed Smoke Test', () => {
   it('server responds to ping (client smoke test)', async () => {
@@ -10,10 +10,10 @@ describe('Integration — Flowise Embed Smoke Test', () => {
     expect(res.status).toBe(200)
   })
 
-  it('prediction endpoint accepts standard flowise-embed payload', async () => {
+  it.skipIf(!hasLLM)('prediction endpoint accepts standard flowise-embed payload', async () => {
     const createRes = await client.post('/chatflows', {
       name: 'embed-smoke-flow',
-      flowData: '{}',
+      flowData: '{"nodes":[],"edges":[]}',
       deployed: false,
       isPublic: false,
       apikeyid: '',
@@ -41,10 +41,10 @@ describe('Integration — Flowise Embed Smoke Test', () => {
     }
   })
 
-  it('streaming prediction works with flowise-embed payload format', async () => {
+  it.skipIf(!hasLLM)('streaming prediction works with flowise-embed payload format', async () => {
     const createRes = await client.post('/chatflows', {
       name: 'embed-stream-smoke',
-      flowData: '{}',
+      flowData: '{"nodes":[],"edges":[]}',
       deployed: false,
       isPublic: false,
       apikeyid: '',

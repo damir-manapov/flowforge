@@ -1,11 +1,11 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { Chatflow } from '../storage/inMemoryStore.js'
 import {
+  createChatflow,
+  deleteChatflow,
   getAllChatflows,
   getChatflowById,
-  createChatflow,
   updateChatflow,
-  deleteChatflow,
 } from '../storage/inMemoryStore.js'
 
 interface IdParams {
@@ -45,7 +45,7 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
     }
 
     const chatflow = createChatflow(body)
-    return reply.code(201).send(chatflow)
+    return reply.code(200).send(chatflow)
   })
 
   app.put('/api/v1/chatflows/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply: FastifyReply) => {

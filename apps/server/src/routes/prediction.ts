@@ -1,7 +1,7 @@
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { getChatflowById } from '../storage/inMemoryStore.js'
-import { initSSE, writeSSE, endSSE } from '../sse/sseWriter.js'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { v4 as uuidv4 } from 'uuid'
+import { endSSE, initSSE, writeSSE } from '../sse/sseWriter.js'
+import { getChatflowById } from '../storage/inMemoryStore.js'
 
 interface PredictionParams {
   flowId: string

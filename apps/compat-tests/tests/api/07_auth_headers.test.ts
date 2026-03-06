@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
 import { HttpClient } from '@flowforge/test-utils'
-import { testConfig, log } from '../../src/setup.js'
+import { describe, expect, it } from 'vitest'
+import { log, testConfig } from '../../src/setup.js'
 
 describe('07 — Auth & Headers', () => {
   it('accepts requests with valid auth header', async () => {

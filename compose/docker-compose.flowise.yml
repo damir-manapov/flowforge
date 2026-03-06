@@ -1,0 +1,20 @@
+services:
+  flowise:
+    image: flowiseai/flowise:1.8.2
+    ports:
+      - "3001:3000"
+    environment:
+      PORT: "3000"
+      APIKEY_PATH: /root/.flowise
+      LOG_LEVEL: info
+    volumes:
+      - flowise-data:/root/.flowise
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/v1/ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  flowise-data:

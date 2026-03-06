@@ -1,18 +1,18 @@
-import Fastify from 'fastify'
 import fastifyCors from '@fastify/cors'
 import fastifyMultipart from '@fastify/multipart'
+import Fastify from 'fastify'
+import { registerAttachmentRoutes } from './routes/attachments.js'
 import { registerChatflowRoutes } from './routes/chatflows.js'
 import { registerPingRoutes } from './routes/ping.js'
 import { registerPredictionRoutes } from './routes/prediction.js'
-import { registerAttachmentRoutes } from './routes/attachments.js'
 
-const PORT = Number(process.env['PORT'] ?? 3000)
-const HOST = process.env['HOST'] ?? '0.0.0.0'
+const PORT = Number(process.env.PORT ?? 3000)
+const HOST = process.env.HOST ?? '0.0.0.0'
 
 export async function buildServer() {
   const app = Fastify({
     logger: {
-      level: process.env['LOG_LEVEL'] ?? 'info',
+      level: process.env.LOG_LEVEL ?? 'info',
     },
   })
 
