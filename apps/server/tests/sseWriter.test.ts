@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest'
-import { endSSE, initSSE, writeKeepAlive, writeSSE } from '../src/sse/sseWriter.js'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { endSSE, initSSE, startKeepAlive, writeKeepAlive, writeSSE } from '../src/sse/sseWriter.js'
 
 function mockReply(destroyed = false) {
   const self = {
@@ -16,6 +16,8 @@ function mockReply(destroyed = false) {
 }
 
 describe('sseWriter', () => {
+  afterEach(() => vi.restoreAllMocks())
+
   describe('initSSE', () => {
     it('sets correct SSE headers via Fastify API', () => {
       const reply = mockReply()
@@ -68,6 +70,25 @@ describe('sseWriter', () => {
       const reply = mockReply(true)
       endSSE(reply)
       expect(reply.raw.end).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('startKeepAlive', () => {
+    it('periodically writes keepalive comments', () => {
+      vi.useFakeTimers()
+      const reply = mockReply()
+      const stop = startKeepAlive(reply)
+
+      expect(reply.raw.write).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(15_000)
+      expect(reply.raw.write).toHaveBeenCalledWith(': keepalive\n\n')
+      vi.advanceTimersByTime(15_000)
+      expect(reply.raw.write).toHaveBeenCalledTimes(2)
+
+      stop()
+      vi.advanceTimersByTime(30_000)
+      expect(reply.raw.write).toHaveBeenCalledTimes(2)
+      vi.useRealTimers()
     })
   })
 })

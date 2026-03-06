@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { getChatflowById, isValidUUID } from '../services/chatflowService.js'
 import { generateStubResponse, getStubTokenDelayMs, getStubTokens } from '../services/predictionService.js'
-import { endSSE, initSSE, writeSSE } from '../sse/sseWriter.js'
+import { endSSE, initSSE, startKeepAlive, writeSSE } from '../sse/sseWriter.js'
 import { sleep } from '../utils/sleep.js'
 
 interface PredictionParams {
@@ -62,30 +62,34 @@ export function registerPredictionRoutes(app: FastifyInstance): void {
 
       if (isStreaming) {
         initSSE(reply)
+        const stopKeepAlive = startKeepAlive(reply)
 
-        const tokens = getStubTokens()
-        const delayMs = getStubTokenDelayMs()
+        try {
+          const tokens = getStubTokens()
+          const delayMs = getStubTokenDelayMs()
 
-        for (const token of tokens) {
-          if (reply.raw.destroyed) break
-          writeSSE(reply, 'token', token)
-          if (delayMs > 0) await sleep(delayMs)
+          for (const token of tokens) {
+            if (reply.raw.destroyed) break
+            writeSSE(reply, 'token', token)
+            if (delayMs > 0) await sleep(delayMs)
+          }
+
+          if (!reply.raw.destroyed) {
+            const result = generateStubResponse(question)
+            const endPayload = JSON.stringify({
+              chatId: result.chatId,
+              chatMessageId: result.chatMessageId,
+              text: tokens.join(''),
+              question,
+              sessionId: result.sessionId,
+            })
+
+            writeSSE(reply, 'end', endPayload)
+          }
+        } finally {
+          stopKeepAlive()
+          endSSE(reply)
         }
-
-        if (!reply.raw.destroyed) {
-          const result = generateStubResponse(question)
-          const endPayload = JSON.stringify({
-            chatId: result.chatId,
-            chatMessageId: result.chatMessageId,
-            text: tokens.join(''),
-            question,
-            sessionId: result.sessionId,
-          })
-
-          writeSSE(reply, 'end', endPayload)
-        }
-
-        endSSE(reply)
         return
       }
 
