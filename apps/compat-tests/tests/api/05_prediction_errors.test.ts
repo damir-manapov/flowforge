@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { client, log, testConfig } from '../../src/setup.js'
+import { client, log } from '../../src/setup.js'
 
 describe('05 — Prediction Errors', () => {
   it('returns error for non-existent flowId', async () => {
@@ -10,9 +10,8 @@ describe('05 — Prediction Errors', () => {
 
     log.info('prediction 404 response', { status: res.status })
 
-    // Flowise returns 500 (InternalFlowiseError), our reimpl returns 404
-    const expected = testConfig.targetName === 'reimpl' ? 404 : 500
-    expect(res.status).toBe(expected)
+    // Both return 500 for non-existent chatflow
+    expect(res.status).toBe(500)
   })
 
   it('returns error for empty question', async () => {

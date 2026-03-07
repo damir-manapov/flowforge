@@ -30,7 +30,11 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
     const chatflow = getChatflowById(id)
 
     if (!chatflow) {
-      return sendError(reply, 404, `Chatflow ${id} not found`)
+      return sendError(
+        reply,
+        500,
+        `Error: chatflowsService.getChatflowById - Chatflow ${id} not found in the database!`,
+      )
     }
 
     return reply.code(200).send(chatflow)
@@ -40,11 +44,15 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
     const body = request.body as Partial<Chatflow> | null
 
     if (!body || typeof body !== 'object') {
-      return sendError(reply, 400, 'Request body is required')
+      return sendError(reply, 500, 'Error: chatflowsService.saveChatflow - Request body is required')
     }
 
     if (!body.name || typeof body.name !== 'string' || body.name.trim().length === 0) {
-      return sendError(reply, 400, 'Name is required')
+      return sendError(
+        reply,
+        500,
+        'Error: chatflowsService.saveChatflow - SQLITE_CONSTRAINT: NOT NULL constraint failed: chat_flow.name',
+      )
     }
 
     const chatflow = createChatflow(body, request.log)
@@ -106,8 +114,25 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
       )
     }
 
-    // Stub: always return false. Real implementation would analyze flowData
-    // to check if ending nodes support streaming.
+    // Analyze flowData for ending nodes — Flowise returns 500 if none found
+    let hasEndingNode = false
+    try {
+      const flowData = JSON.parse(chatflow.flowData ?? '{}')
+      const nodes = Array.isArray(flowData.nodes) ? flowData.nodes : []
+      hasEndingNode = nodes.length > 0
+    } catch {
+      // malformed JSON → no ending nodes
+    }
+
+    if (!hasEndingNode) {
+      return sendError(
+        reply,
+        500,
+        'Error: chatflowsService.checkIfChatflowIsValidForStreaming - Ending nodes not found',
+      )
+    }
+
+    // Stub: return false. Real implementation would check if ending nodes support streaming.
     return reply.code(200).send({ isStreaming: false })
   })
 }

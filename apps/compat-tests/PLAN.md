@@ -2,7 +2,7 @@
 
 API endpoints discovered via mitmproxy traffic recording against Flowise 1.8.4 UI.
 
-**Scope**: ~45 endpoints across 7 steps. 7 already done.
+**Scope**: ~45 endpoints across 7 steps. ~42 done, 3 remaining (Step 5).
 
 Each step follows the same cycle:
 
@@ -17,7 +17,7 @@ Step 1 only executes cycle steps 1–3 (stub + tests + verify on Flowise). Later
 Existing test scripts (in `apps/compat-tests/package.json`):
 
 - `pnpm test:official` — runs against Flowise on `localhost:3001`
-- `pnpm test:reimpl` — runs against FlowForge on `localhost:4000`
+- `pnpm test:reimpl` — runs against FlowForge on `localhost:3000`
 - `pnpm test:record` — records golden snapshots from Flowise
 
 All tests are HTTP-only (no internal imports). Same test suite runs against both backends.
@@ -40,12 +40,12 @@ Return `[]` / static data for every boot-time endpoint. No persistence, no busin
 | ✅ | `GET /api/v1/chatflows` | real impl |
 | � | `GET /api/v1/nodes` | static JSON (extracted from Flowise 1.8.4) |
 | 🚧 | `GET /api/v1/node-icon/:name` | 404 (icons not served yet) |
-| 🚧 | `GET /api/v1/credentials` | `[]` |
-| 🚧 | `GET /api/v1/components-credentials` | `[]` |
-| 🚧 | `GET /api/v1/apikey` | `[]` |
-| 🚧 | `GET /api/v1/tools` | `[]` |
-| 🚧 | `GET /api/v1/assistants` | `[]` |
-| 🚧 | `GET /api/v1/variables` | `[]` |
+| ✅ | `GET /api/v1/credentials` | Full CRUD (Step 3) |
+| ✅ | `GET /api/v1/components-credentials` | Static catalog (Step 3) |
+| ✅ | `GET /api/v1/apikey` | Full CRUD (Step 4) |
+| ✅ | `GET /api/v1/tools` | Full CRUD (Step 6) |
+| ✅ | `GET /api/v1/assistants` | Full CRUD (Step 6) |
+| ✅ | `GET /api/v1/variables` | Full CRUD (Step 4) |
 | ✅ | `GET /api/v1/document-store/stores` | Full CRUD (Step 7) |
 | ✅ | `GET /api/v1/marketplaces/templates` | 55 static templates (Step 7) |
 
@@ -173,4 +173,4 @@ Extract from mitmproxy capture, serve as-is. Pin to Flowise 1.8.4 node catalog. 
 
 ### Credential encryption
 
-Flowise uses AES-256 with `PASSPHRASE` env var. Match the same scheme for credential portability.
+Flowise uses CryptoJS AES with `FLOWISE_SECRETKEY_OVERWRITE` env var (or auto-generated key). Our implementation matches this scheme for credential portability.

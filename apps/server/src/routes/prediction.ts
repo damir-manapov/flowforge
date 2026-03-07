@@ -24,7 +24,11 @@ export function registerPredictionRoutes(app: FastifyInstance): void {
     const chatflow = getChatflowById(flowId)
 
     if (!chatflow) {
-      return sendError(reply, 404, `Chatflow ${flowId} not found`)
+      return sendError(
+        reply,
+        500,
+        `Error: chatflowsService.getChatflowById - Chatflow ${flowId} not found in the database!`,
+      )
     }
 
     const body = request.body as PredictionBody | null

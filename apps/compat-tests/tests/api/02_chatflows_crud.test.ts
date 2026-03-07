@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { ChatflowListSchema, ChatflowSchema, ErrorResponseSchema } from '../../src/schemas.js'
-import { client, log, recorder, shouldRecord, testConfig } from '../../src/setup.js'
+import { client, log, recorder, shouldRecord } from '../../src/setup.js'
 
 describe('02 — Chatflows CRUD', () => {
   let createdId: string
@@ -104,20 +104,9 @@ describe('02 — Chatflows CRUD', () => {
 
     const res = await client.get(`/chatflows-streaming/${createdId}`)
 
-    // Flowise returns 500 for chatflows with no ending nodes (empty flowData),
-    // our reimpl returns 200 with isStreaming: false as a stub.
-    if (testConfig.targetName === 'reimpl') {
-      expect(res.status).toBe(200)
-      const body = res.json<{ isStreaming: boolean }>()
-      expect(typeof body.isStreaming).toBe('boolean')
-    } else {
-      // Flowise needs real ending nodes to determine streaming capability
-      expect([200, 500]).toContain(res.status)
-      if (res.status === 200) {
-        const body = res.json<{ isStreaming: boolean }>()
-        expect(typeof body.isStreaming).toBe('boolean')
-      }
-    }
+    // Both Flowise and our reimpl return 500 for chatflows with no ending nodes
+    // (empty flowData has no ending nodes to check for streaming)
+    expect(res.status).toBe(500)
 
     if (shouldRecord()) {
       recorder.record('chatflows/streaming', res.json())
@@ -147,9 +136,8 @@ describe('02 — Chatflows CRUD', () => {
   it('GET /chatflows/:id returns error for missing id', async () => {
     const res = await client.get('/chatflows/00000000-0000-0000-0000-000000000000')
 
-    // Flowise returns 500 (InternalFlowiseError), our reimpl returns 404
-    const expected = testConfig.targetName === 'reimpl' ? 404 : 500
-    expect(res.status).toBe(expected)
+    // Both return 500 for missing chatflow
+    expect(res.status).toBe(500)
 
     const body = res.json()
     const parsed = ErrorResponseSchema.safeParse(body)
@@ -161,8 +149,7 @@ describe('02 — Chatflows CRUD', () => {
       flowData: '{"nodes":[],"edges":[]}',
     })
 
-    // Flowise returns 500 (InternalFlowiseError), our reimpl returns 400
-    const expected = testConfig.targetName === 'reimpl' ? 400 : 500
-    expect(res.status).toBe(expected)
+    // Both return 500 for missing required fields
+    expect(res.status).toBe(500)
   })
 })

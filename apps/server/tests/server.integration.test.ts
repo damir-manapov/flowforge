@@ -74,12 +74,12 @@ describe('server integration (inject)', () => {
       expect(res.statusCode).toBe(400)
     })
 
-    it('returns 404 for non-existent chatflow', async () => {
+    it('returns 500 for non-existent chatflow', async () => {
       const res = await app.inject({
         method: 'GET',
         url: '/api/v1/chatflows/00000000-0000-0000-0000-000000000000',
       })
-      expect(res.statusCode).toBe(404)
+      expect(res.statusCode).toBe(500)
     })
 
     it('updates a chatflow', async () => {
@@ -111,16 +111,16 @@ describe('server integration (inject)', () => {
       expect(del.statusCode).toBe(200)
 
       const get = await app.inject({ method: 'GET', url: `/api/v1/chatflows/${id}` })
-      expect(get.statusCode).toBe(404)
+      expect(get.statusCode).toBe(500)
     })
 
-    it('returns 400 when name is missing on POST', async () => {
+    it('returns 500 when name is missing on POST', async () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: {},
       })
-      expect(res.statusCode).toBe(400)
+      expect(res.statusCode).toBe(500)
     })
     it('returns 400 when PUT body is missing', async () => {
       const create = await app.inject({
@@ -150,13 +150,13 @@ describe('server integration (inject)', () => {
       expect(res.statusCode).toBe(400)
     })
 
-    it('returns 404 for non-existent chatflow', async () => {
+    it('returns 500 for non-existent chatflow', async () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/prediction/00000000-0000-0000-0000-000000000000',
         payload: { question: 'Hi' },
       })
-      expect(res.statusCode).toBe(404)
+      expect(res.statusCode).toBe(500)
     })
 
     it('returns 400 when question is missing', async () => {

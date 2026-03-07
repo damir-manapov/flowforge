@@ -7,10 +7,9 @@ import {
   CredentialWithPlainDataSchema,
   DeleteResultSchema,
 } from '../../src/schemas.js'
-import { client, log, testConfig } from '../../src/setup.js'
+import { client, log } from '../../src/setup.js'
 
 const REDACTED = '_FLOWISE_BLANK_07167752-1a71-43b1-bf8f-4f32252165db'
-const isReimpl = testConfig.targetName === 'reimpl'
 
 describe('03 — Credentials CRUD', () => {
   let createdId: string
@@ -126,17 +125,10 @@ describe('03 — Credentials CRUD', () => {
 
     const body = res.json()
 
-    if (isReimpl) {
-      // Our reimpl returns { raw: [], affected: 1 } to match Flowise
-      const parsed = DeleteResultSchema.safeParse(body)
-      expect(parsed.success).toBe(true)
-      if (parsed.success) {
-        expect(parsed.data.affected).toBe(1)
-      }
-    } else {
-      // Flowise also returns DeleteResult
-      const parsed = DeleteResultSchema.safeParse(body)
-      expect(parsed.success).toBe(true)
+    const parsed = DeleteResultSchema.safeParse(body)
+    expect(parsed.success).toBe(true)
+    if (parsed.success) {
+      expect(parsed.data.affected).toBe(1)
     }
 
     // Mark as cleaned up
