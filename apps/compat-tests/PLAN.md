@@ -1,0 +1,168 @@
+# FlowForge Implementation Plan
+
+API endpoints discovered via mitmproxy traffic recording against Flowise 1.8.4 UI.
+
+**Scope**: ~45 endpoints across 7 steps. 7 already done.
+
+Each step follows the same cycle:
+
+1. **Stub** — return `[]` or static data so the UI doesn't break
+2. **Tests** — write compat tests for the endpoint contract
+3. **Verify against Flowise** — run tests against the original backend to confirm they pass
+4. **Implement** — build the real handler in FlowForge
+5. **Verify against FlowForge** — run the same tests against our backend until green
+
+Step 1 only executes cycle steps 1–3 (stub + tests + verify on Flowise). Later steps upgrade those stubs to real implementations (cycle steps 4–5).
+
+Compat tests target whichever backend `BASE_URL` points to (default: `http://localhost:3000`).
+
+## Status Legend
+
+- ✅ Done
+- 🚧 Stub only (returns `[]` or static data, no persistence)
+- 🔲 Not started
+
+---
+
+## Step 1: Boot Stubs (UI loads without errors)
+
+Return `[]` / static data for every boot-time endpoint. No persistence, no business logic.
+
+| Status | Endpoint | Stub Response |
+|---|---|---|
+| ✅ | `GET /api/v1/ping` | `"pong"` |
+| ✅ | `GET /api/v1/chatflows` | real impl |
+| 🔲 | `GET /api/v1/nodes` | static JSON (extracted from capture) |
+| 🔲 | `GET /api/v1/node-icon/:name` | serve from flowise-components or 404 |
+| 🔲 | `GET /api/v1/credentials` | `[]` |
+| 🔲 | `GET /api/v1/components-credentials` | `[]` |
+| 🔲 | `GET /api/v1/apikey` | `[]` |
+| 🔲 | `GET /api/v1/tools` | `[]` |
+| 🔲 | `GET /api/v1/assistants` | `[]` |
+| 🔲 | `GET /api/v1/variables` | `[]` |
+| 🔲 | `GET /api/v1/document-store/stores` | `[]` |
+| 🔲 | `GET /api/v1/marketplaces/templates` | `[]` |
+
+**Goal**: UI loads fully, no console errors, flow editor palette populated.
+
+---
+
+## Step 2: Chatflow CRUD
+
+Full persistence for chatflows — create, update, delete.
+
+| Status | Endpoint | Notes |
+|---|---|---|
+| ✅ | `GET /api/v1/chatflows` | Already implemented |
+| ✅ | `GET /api/v1/chatflows/:id` | Already implemented |
+| 🔲 | `POST /api/v1/chatflows` | Create chatflow |
+| 🔲 | `PUT /api/v1/chatflows/:id` | Update chatflow |
+| 🔲 | `DELETE /api/v1/chatflows/:id` | Delete chatflow |
+| 🔲 | `GET /api/v1/chatflows-streaming/:id` | Derived from flowData |
+
+**Goal**: Create, edit, save, delete flows via the UI.
+
+---
+
+## Step 3: Credentials CRUD
+
+Full persistence for credentials with encryption.
+
+| Status | Endpoint | Notes |
+|---|---|---|
+| 🔲 | `GET /api/v1/credentials` | List (upgrade from stub) |
+| 🔲 | `POST /api/v1/credentials` | Create |
+| 🔲 | `PUT /api/v1/credentials/:id` | Update |
+| 🔲 | `DELETE /api/v1/credentials/:id` | Delete |
+| 🔲 | `GET /api/v1/components-credentials` | Credential type definitions (upgrade from stub) |
+| 🔲 | `GET /api/v1/components-credentials/:name` | Single credential type |
+| 🔲 | `GET /api/v1/components-credentials-icon/:name` | Provider icon |
+
+**Goal**: Configure API keys and service connections for nodes.
+
+---
+
+## Step 4: Variables & API Keys
+
+Full CRUD for environment variables and API key management.
+
+| Status | Endpoint | Notes |
+|---|---|---|
+| 🔲 | `GET /api/v1/variables` | List (upgrade from stub) |
+| 🔲 | `POST /api/v1/variables` | Create |
+| 🔲 | `PUT /api/v1/variables/:id` | Update |
+| 🔲 | `DELETE /api/v1/variables/:id` | Delete |
+| 🔲 | `GET /api/v1/apikey` | List (upgrade from stub) |
+| 🔲 | `POST /api/v1/apikey` | Create |
+| 🔲 | `DELETE /api/v1/apikey/:id` | Delete |
+
+**Goal**: Manage variables and API keys used in chatflow execution.
+
+---
+
+## Step 5: Node Catalog (real)
+
+Replace static JSON stub with dynamic node catalog built from flowise-components. Hardest step — ~370KB response, icon serving, dynamic option loading.
+
+| Status | Endpoint | Notes |
+|---|---|---|
+| 🔲 | `GET /api/v1/nodes` | Build catalog from flowise-components at startup |
+| 🔲 | `GET /api/v1/node-icon/:name` | Serve icons from flowise-components package |
+| 🔲 | `POST /api/v1/node-load-method/:name` | Dynamic options (e.g., list models from OpenAI) |
+
+**Goal**: Node palette reflects actually available components, dynamic dropdowns work.
+
+---
+
+## Step 6: Tools & Assistants
+
+Full CRUD for custom tools and assistants.
+
+| Status | Endpoint | Notes |
+|---|---|---|
+| 🔲 | `GET /api/v1/tools` | List (upgrade from stub) |
+| 🔲 | `POST /api/v1/tools` | Create |
+| 🔲 | `PUT /api/v1/tools/:id` | Update |
+| 🔲 | `DELETE /api/v1/tools/:id` | Delete |
+| 🔲 | `GET /api/v1/assistants` | List (upgrade from stub) |
+| 🔲 | `POST /api/v1/assistants` | Create |
+| 🔲 | `PUT /api/v1/assistants/:id` | Update |
+| 🔲 | `DELETE /api/v1/assistants/:id` | Delete |
+
+**Goal**: Full tool and assistant management through the UI.
+
+---
+
+## Step 7: Document Store & Marketplace
+
+| Status | Endpoint | Notes |
+|---|---|---|
+| 🔲 | `GET /api/v1/document-store/stores` | List (upgrade from stub) |
+| 🔲 | `POST /api/v1/document-store/stores` | Create |
+| 🔲 | `PUT /api/v1/document-store/stores/:id` | Update |
+| 🔲 | `DELETE /api/v1/document-store/stores/:id` | Delete |
+| 🔲 | `GET /api/v1/upsert-history/:id` | Vector upsert history |
+| 🔲 | `GET /api/v1/marketplaces/templates` | Template list (upgrade from stub) |
+
+**Goal**: Document ingestion and template marketplace functional.
+
+---
+
+## Prediction (already done)
+
+| Status | Endpoint | Notes |
+|---|---|---|
+| ✅ | `POST /api/v1/prediction/:id` | JSON + SSE streaming |
+| ✅ | `POST /api/v1/attachments/:chatflowId/:chatId` | File uploads |
+
+---
+
+## Approach Notes
+
+### Static node catalog (Step 1)
+
+Extract from mitmproxy capture, serve as-is. Pin to Flowise 1.8.4 node catalog. Replace with dynamic catalog in Step 5.
+
+### Credential encryption
+
+Flowise uses AES-256 with `PASSPHRASE` env var. Match the same scheme for credential portability.
