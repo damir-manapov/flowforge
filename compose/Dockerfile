@@ -12,7 +12,7 @@ RUN pnpm install --frozen-lockfile --filter @flowforge/server
 COPY tsconfig.json ./
 COPY apps/server/ apps/server/
 
-RUN pnpm build
+RUN pnpm --filter @flowforge/server build
 
 FROM node:24-alpine
 
@@ -26,7 +26,7 @@ COPY --from=builder --chown=app:app /app/apps/server/package.json apps/server/
 COPY --from=builder --chown=app:app /app/apps/server/dist apps/server/dist
 
 # Install only production dependencies for the server
-RUN pnpm install --frozen-lockfile --prod --filter @flowforge/server
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter @flowforge/server
 
 ENV NODE_ENV=production
 USER app
