@@ -119,3 +119,29 @@ export const CredentialTypeSchema = z.object({
 })
 
 export const CredentialTypeListSchema = z.array(CredentialTypeSchema)
+
+// ── Variables ────────────────────────────────────────────────────────
+
+export const VariableSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  value: z.string(),
+  type: z.string(),
+  createdDate: z.string(),
+  updatedDate: z.string(),
+})
+
+export const VariableListSchema = z.array(VariableSchema)
+
+// ── API Keys ─────────────────────────────────────────────────────────
+
+export const ApiKeySchema = z.object({
+  id: z.string(),
+  keyName: z.string(),
+  apiKey: z.string(),
+  apiSecret: z.string(),
+  createdAt: z.string(),
+  chatFlows: z.array(z.unknown()),
+})
+
+export const ApiKeyListSchema = z.array(ApiKeySchema)

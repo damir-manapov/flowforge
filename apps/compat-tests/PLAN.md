@@ -94,13 +94,14 @@ Full CRUD for environment variables and API key management.
 
 | Status | Endpoint | Notes |
 |---|---|---|
-| 🔲 | `GET /api/v1/variables` | List (upgrade from stub) |
-| 🔲 | `POST /api/v1/variables` | Create |
-| 🔲 | `PUT /api/v1/variables/:id` | Update |
-| 🔲 | `DELETE /api/v1/variables/:id` | Delete |
-| 🔲 | `GET /api/v1/apikey` | List (upgrade from stub) |
-| 🔲 | `POST /api/v1/apikey` | Create |
-| 🔲 | `DELETE /api/v1/apikey/:id` | Delete |
+| ✅ | `GET /api/v1/variables` | List (no encryption, plain values) |
+| ✅ | `POST /api/v1/variables` | Create |
+| ✅ | `PUT /api/v1/variables/:id` | Update |
+| ✅ | `DELETE /api/v1/variables/:id` | Delete (Flowise DeleteResult shape) |
+| ✅ | `GET /api/v1/apikey` | List (full array with apiKey/apiSecret) |
+| ✅ | `POST /api/v1/apikey` | Create (returns full array) |
+| ✅ | `PUT /api/v1/apikey/:id` | Rename only |
+| ✅ | `DELETE /api/v1/apikey/:id` | Delete (returns remaining keys) |
 
 **Goal**: Manage variables and API keys used in chatflow execution.
 
