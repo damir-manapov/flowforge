@@ -14,7 +14,13 @@ Each step follows the same cycle:
 
 Step 1 only executes cycle steps 1–3 (stub + tests + verify on Flowise). Later steps upgrade those stubs to real implementations (cycle steps 4–5).
 
-Compat tests target whichever backend `BASE_URL` points to (default: `http://localhost:3000`).
+Existing test scripts (in `apps/compat-tests/package.json`):
+
+- `pnpm test:official` — runs against Flowise on `localhost:3001`
+- `pnpm test:reimpl` — runs against FlowForge on `localhost:4000`
+- `pnpm test:record` — records golden snapshots from Flowise
+
+All tests are HTTP-only (no internal imports). Same test suite runs against both backends.
 
 ## Status Legend
 
@@ -32,16 +38,16 @@ Return `[]` / static data for every boot-time endpoint. No persistence, no busin
 |---|---|---|
 | ✅ | `GET /api/v1/ping` | `"pong"` |
 | ✅ | `GET /api/v1/chatflows` | real impl |
-| 🔲 | `GET /api/v1/nodes` | static JSON (extracted from capture) |
-| 🔲 | `GET /api/v1/node-icon/:name` | serve from flowise-components or 404 |
-| 🔲 | `GET /api/v1/credentials` | `[]` |
-| 🔲 | `GET /api/v1/components-credentials` | `[]` |
-| 🔲 | `GET /api/v1/apikey` | `[]` |
-| 🔲 | `GET /api/v1/tools` | `[]` |
-| 🔲 | `GET /api/v1/assistants` | `[]` |
-| 🔲 | `GET /api/v1/variables` | `[]` |
-| 🔲 | `GET /api/v1/document-store/stores` | `[]` |
-| 🔲 | `GET /api/v1/marketplaces/templates` | `[]` |
+| � | `GET /api/v1/nodes` | static JSON (extracted from Flowise 1.8.4) |
+| 🚧 | `GET /api/v1/node-icon/:name` | 404 (icons not served yet) |
+| 🚧 | `GET /api/v1/credentials` | `[]` |
+| 🚧 | `GET /api/v1/components-credentials` | `[]` |
+| 🚧 | `GET /api/v1/apikey` | `[]` |
+| 🚧 | `GET /api/v1/tools` | `[]` |
+| 🚧 | `GET /api/v1/assistants` | `[]` |
+| 🚧 | `GET /api/v1/variables` | `[]` |
+| 🚧 | `GET /api/v1/document-store/stores` | `[]` |
+| 🚧 | `GET /api/v1/marketplaces/templates` | `[]` |
 
 **Goal**: UI loads fully, no console errors, flow editor palette populated.
 
@@ -55,9 +61,9 @@ Full persistence for chatflows — create, update, delete.
 |---|---|---|
 | ✅ | `GET /api/v1/chatflows` | Already implemented |
 | ✅ | `GET /api/v1/chatflows/:id` | Already implemented |
-| 🔲 | `POST /api/v1/chatflows` | Create chatflow |
-| 🔲 | `PUT /api/v1/chatflows/:id` | Update chatflow |
-| 🔲 | `DELETE /api/v1/chatflows/:id` | Delete chatflow |
+| ✅ | `POST /api/v1/chatflows` | Already implemented |
+| ✅ | `PUT /api/v1/chatflows/:id` | Already implemented |
+| ✅ | `DELETE /api/v1/chatflows/:id` | Already implemented |
 | 🔲 | `GET /api/v1/chatflows-streaming/:id` | Derived from flowData |
 
 **Goal**: Create, edit, save, delete flows via the UI.

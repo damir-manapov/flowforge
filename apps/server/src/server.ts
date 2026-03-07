@@ -5,8 +5,10 @@ import fastifyRateLimit from '@fastify/rate-limit'
 import Fastify, { type FastifyError } from 'fastify'
 import { registerAttachmentRoutes } from './routes/attachments.js'
 import { registerChatflowRoutes } from './routes/chatflows.js'
+import { registerNodeRoutes } from './routes/nodes.js'
 import { registerPingRoutes } from './routes/ping.js'
 import { registerPredictionRoutes } from './routes/prediction.js'
+import { registerStubRoutes } from './routes/stubs.js'
 
 function parseCorsOrigin(): boolean | string | string[] {
   const raw = process.env.CORS_ORIGIN
@@ -56,6 +58,8 @@ export async function buildServer() {
   registerChatflowRoutes(app)
   registerPredictionRoutes(app)
   registerAttachmentRoutes(app)
+  registerNodeRoutes(app)
+  registerStubRoutes(app)
 
   app.setNotFoundHandler((_req, reply) => {
     reply.status(404).send({

@@ -29,6 +29,7 @@ WORKDIR /app
 COPY --from=builder --chown=app:app /app/package.json /app/pnpm-workspace.yaml /app/pnpm-lock.yaml /app/.npmrc ./
 COPY --from=builder --chown=app:app /app/apps/server/package.json apps/server/
 COPY --from=builder --chown=app:app /app/apps/server/dist apps/server/dist
+COPY --from=builder --chown=app:app /app/apps/server/data apps/server/data
 
 # Install only production dependencies for the server
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter @flowforge/server \
