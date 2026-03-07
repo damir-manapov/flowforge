@@ -6,9 +6,12 @@ import {
   ToolListSchema,
   ToolSchema,
 } from '../../src/schemas.js'
-import { client, log, testConfig } from '../../src/setup.js'
+import { client, log } from '../../src/setup.js'
 
-const isReimpl = testConfig.targetName === 'reimpl'
+// Assistants CRUD requires local-only persistence (no OpenAI API calls).
+// Flowise calls openai.beta.assistants.create() which needs real credentials,
+// so we can only run these tests against our reimplementation.
+const hasLocalAssistants = process.env.TARGET_NAME === 'reimpl'
 
 describe('12 — Tools CRUD', () => {
   let createdId: string
@@ -112,9 +115,9 @@ describe('12 — Tools CRUD', () => {
   })
 })
 
-describe('12 — Assistants CRUD', { skip: !isReimpl }, () => {
-  // Assistants CRUD on Flowise requires real OpenAI credentials.
-  // We only test on our reimplementation which does local persistence.
+describe('12 — Assistants CRUD', { skip: !hasLocalAssistants }, () => {
+  // Flowise assistants require real OpenAI credentials + API calls.
+  // Our reimplementation does local persistence only.
   let createdId: string
 
   beforeAll(() => {
