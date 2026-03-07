@@ -55,6 +55,15 @@ pnpm compose:up
 
 Server listens on port 4000 (mapped from container port 3000).
 
+## Run with Flowise UI
+
+```bash
+pnpm compose:up:ui         # API on :4000 + Flowise UI via Caddy on :3000
+pnpm compose:down:ui       # Stop everything
+```
+
+Opens the original Flowise UI at `http://localhost:3000`, backed by the FlowForge API.
+
 ## Run Flowise (for recording/comparison)
 
 ```bash

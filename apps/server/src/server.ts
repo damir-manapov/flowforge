@@ -52,6 +52,11 @@ export async function buildServer() {
     })
   })
 
+  registerPingRoutes(app)
+  registerChatflowRoutes(app)
+  registerPredictionRoutes(app)
+  registerAttachmentRoutes(app)
+
   app.setNotFoundHandler((_req, reply) => {
     reply.status(404).send({
       statusCode: 404,
@@ -59,11 +64,6 @@ export async function buildServer() {
       message: 'Route not found',
     })
   })
-
-  registerPingRoutes(app)
-  registerChatflowRoutes(app)
-  registerPredictionRoutes(app)
-  registerAttachmentRoutes(app)
 
   return app
 }

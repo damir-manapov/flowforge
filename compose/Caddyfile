@@ -1,0 +1,13 @@
+:80
+
+root * /srv
+file_server
+
+handle /api/* {
+	reverse_proxy flowforge-server:3000
+}
+
+handle {
+	try_files {path} /index.html
+	file_server
+}

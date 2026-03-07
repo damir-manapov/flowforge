@@ -14,3 +14,27 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  flowise-ui-copy:
+    profiles: [ui]
+    image: flowiseai/flowise:1.8.4
+    entrypoint: ["sh", "-c", "cp -r /usr/local/lib/node_modules/flowise/node_modules/flowise-ui/build/* /out/"]
+    volumes:
+      - flowise-ui:/out
+
+  caddy:
+    profiles: [ui]
+    image: caddy:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - flowise-ui:/srv:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      flowise-ui-copy:
+        condition: service_completed_successfully
+      flowforge-server:
+        condition: service_healthy
+
+volumes:
+  flowise-ui:
