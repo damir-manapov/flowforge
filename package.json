@@ -24,6 +24,8 @@
     "compose:down:ui": "docker compose -f compose/docker-compose.yml --profile ui down",
     "compose:flowise:up": "docker compose -f compose/docker-compose.flowise.yml up -d --wait",
     "compose:flowise:down": "docker compose -f compose/docker-compose.flowise.yml down",
+    "compose:record:up": "docker compose -f compose/docker-compose.record.yml up -d --wait",
+    "compose:record:down": "docker compose -f compose/docker-compose.record.yml down -v --remove-orphans",
     "prepare": "simple-git-hooks"
   },
   "simple-git-hooks": {

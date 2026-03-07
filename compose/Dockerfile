@@ -18,6 +18,11 @@ FROM node:24-alpine
 
 RUN addgroup -S app && adduser -S app -G app
 RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
+# Remove bundled npm/npx/yarn (unused — we use pnpm) to eliminate their transitive CVEs
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx \
+        /opt/yarn-* /usr/local/bin/yarn /usr/local/bin/yarnpkg
+# Patch Alpine system packages to latest security fixes
+RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
 
 WORKDIR /app
 
@@ -26,7 +31,8 @@ COPY --from=builder --chown=app:app /app/apps/server/package.json apps/server/
 COPY --from=builder --chown=app:app /app/apps/server/dist apps/server/dist
 
 # Install only production dependencies for the server
-RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter @flowforge/server
+RUN pnpm install --frozen-lockfile --prod --ignore-scripts --filter @flowforge/server \
+  && rm -rf /root/.cache/node /usr/local/lib/node_modules/corepack /usr/local/bin/corepack /usr/local/bin/pnpm /usr/local/bin/pnpx
 
 ENV NODE_ENV=production
 USER app

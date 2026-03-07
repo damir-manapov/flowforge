@@ -17,4 +17,8 @@ echo "=== Vulnerability audit ==="
 pnpm audit
 
 echo ""
+echo "=== Docker image scan ==="
+bash compose/scan.sh
+
+echo ""
 echo "Health checks passed."
