@@ -88,4 +88,26 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
 
     return reply.code(200).send({ deleted: true })
   })
+
+  app.get('/api/v1/chatflows-streaming/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
+    const { id } = request.params
+
+    if (!isValidUUID(id)) {
+      return sendError(reply, 400, `Invalid chatflow id format: ${id}`)
+    }
+
+    const chatflow = getChatflowById(id)
+
+    if (!chatflow) {
+      return sendError(
+        reply,
+        500,
+        `Error: chatflowsService.checkIfChatflowIsValidForStreaming - Chatflow ${id} not found`,
+      )
+    }
+
+    // Stub: always return false. Real implementation would analyze flowData
+    // to check if ending nodes support streaming.
+    return reply.code(200).send({ isStreaming: false })
+  })
 }

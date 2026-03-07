@@ -64,7 +64,7 @@ Full persistence for chatflows — create, update, delete.
 | ✅ | `POST /api/v1/chatflows` | Already implemented |
 | ✅ | `PUT /api/v1/chatflows/:id` | Already implemented |
 | ✅ | `DELETE /api/v1/chatflows/:id` | Already implemented |
-| 🔲 | `GET /api/v1/chatflows-streaming/:id` | Derived from flowData |
+| � | `GET /api/v1/chatflows-streaming/:id` | Stub: always returns `{ isStreaming: false }` |
 
 **Goal**: Create, edit, save, delete flows via the UI.
 

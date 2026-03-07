@@ -99,6 +99,37 @@ describe('02 — Chatflows CRUD', () => {
     }
   })
 
+  it('GET /chatflows-streaming/:id returns streaming status', async () => {
+    expect(createdId).toBeDefined()
+
+    const res = await client.get(`/chatflows-streaming/${createdId}`)
+
+    // Flowise returns 500 for chatflows with no ending nodes (empty flowData),
+    // our reimpl returns 200 with isStreaming: false as a stub.
+    if (testConfig.targetName === 'reimpl') {
+      expect(res.status).toBe(200)
+      const body = res.json<{ isStreaming: boolean }>()
+      expect(typeof body.isStreaming).toBe('boolean')
+    } else {
+      // Flowise needs real ending nodes to determine streaming capability
+      expect([200, 500]).toContain(res.status)
+      if (res.status === 200) {
+        const body = res.json<{ isStreaming: boolean }>()
+        expect(typeof body.isStreaming).toBe('boolean')
+      }
+    }
+
+    if (shouldRecord()) {
+      recorder.record('chatflows/streaming', res.json())
+    }
+  })
+
+  it('GET /chatflows-streaming/:id returns error for missing id', async () => {
+    const res = await client.get('/chatflows-streaming/00000000-0000-0000-0000-000000000000')
+
+    expect(res.status).toBe(500)
+  })
+
   it('DELETE /chatflows/:id deletes the chatflow', async () => {
     expect(createdId).toBeDefined()
 
