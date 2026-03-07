@@ -76,13 +76,13 @@ Full persistence for credentials with encryption.
 
 | Status | Endpoint | Notes |
 |---|---|---|
-| 🔲 | `GET /api/v1/credentials` | List (upgrade from stub) |
-| 🔲 | `POST /api/v1/credentials` | Create |
-| 🔲 | `PUT /api/v1/credentials/:id` | Update |
-| 🔲 | `DELETE /api/v1/credentials/:id` | Delete |
-| 🔲 | `GET /api/v1/components-credentials` | Credential type definitions (upgrade from stub) |
-| 🔲 | `GET /api/v1/components-credentials/:name` | Single credential type |
-| 🔲 | `GET /api/v1/components-credentials-icon/:name` | Provider icon |
+| ✅ | `GET /api/v1/credentials` | List with encryption |
+| ✅ | `POST /api/v1/credentials` | Create with AES encryption |
+| ✅ | `PUT /api/v1/credentials/:id` | Update |
+| ✅ | `DELETE /api/v1/credentials/:id` | Delete (Flowise DeleteResult shape) |
+| ✅ | `GET /api/v1/components-credentials` | Static JSON catalog (63 types from Flowise 1.8.4) |
+| ✅ | `GET /api/v1/components-credentials/:name` | Single credential type lookup |
+| 🚧 | `GET /api/v1/components-credentials-icon/:name` | 404 (icons not served yet) |
 
 **Goal**: Configure API keys and service connections for nodes.
 

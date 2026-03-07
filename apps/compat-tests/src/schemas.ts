@@ -56,3 +56,66 @@ export const AttachmentResponseSchema = z.object({
     }),
   ),
 })
+
+// ── Credentials ──────────────────────────────────────────────────────
+
+/** Credential as returned by POST (create) and PUT (update) — includes encryptedData. */
+export const CredentialSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  credentialName: z.string(),
+  encryptedData: z.string(),
+  createdDate: z.string(),
+  updatedDate: z.string(),
+})
+
+/** Credential as returned by GET /credentials (list) — no encryptedData. */
+export const CredentialListItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  credentialName: z.string(),
+  createdDate: z.string(),
+  updatedDate: z.string(),
+})
+
+export const CredentialListSchema = z.array(CredentialListItemSchema)
+
+/** Credential as returned by GET /credentials/:id — decrypted+redacted. */
+export const CredentialWithPlainDataSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  credentialName: z.string(),
+  createdDate: z.string(),
+  updatedDate: z.string(),
+  plainDataObj: z.record(z.string(), z.unknown()),
+})
+
+/** Flowise DeleteResult shape. */
+export const DeleteResultSchema = z.object({
+  raw: z.array(z.unknown()),
+  affected: z.number(),
+})
+
+// ── Components-credentials catalog ───────────────────────────────────
+
+export const CredentialTypeSchema = z.object({
+  label: z.string(),
+  name: z.string(),
+  version: z.number(),
+  description: z.string().optional(),
+  optional: z.boolean().optional(),
+  inputs: z
+    .array(
+      z
+        .object({
+          label: z.string(),
+          name: z.string(),
+          type: z.string(),
+        })
+        .passthrough(),
+    )
+    .optional(),
+  icon: z.string().optional(),
+})
+
+export const CredentialTypeListSchema = z.array(CredentialTypeSchema)

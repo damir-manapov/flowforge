@@ -10,8 +10,6 @@ export function registerStubRoutes(app: FastifyInstance): void {
   const emptyArray = async (_request: FastifyRequest, reply: { code: (n: number) => { send: (b: unknown) => void } }) =>
     reply.code(200).send([])
 
-  app.get('/api/v1/credentials', emptyArray)
-  app.get('/api/v1/components-credentials', emptyArray)
   app.get('/api/v1/apikey', emptyArray)
   app.get('/api/v1/tools', emptyArray)
   app.get('/api/v1/assistants', emptyArray)

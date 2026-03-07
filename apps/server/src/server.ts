@@ -5,6 +5,7 @@ import fastifyRateLimit from '@fastify/rate-limit'
 import Fastify, { type FastifyError } from 'fastify'
 import { registerAttachmentRoutes } from './routes/attachments.js'
 import { registerChatflowRoutes } from './routes/chatflows.js'
+import { registerCredentialRoutes } from './routes/credentials.js'
 import { registerNodeRoutes } from './routes/nodes.js'
 import { registerPingRoutes } from './routes/ping.js'
 import { registerPredictionRoutes } from './routes/prediction.js'
@@ -59,6 +60,7 @@ export async function buildServer() {
   registerPredictionRoutes(app)
   registerAttachmentRoutes(app)
   registerNodeRoutes(app)
+  registerCredentialRoutes(app)
   registerStubRoutes(app)
 
   app.setNotFoundHandler((_req, reply) => {
