@@ -46,8 +46,8 @@ Return `[]` / static data for every boot-time endpoint. No persistence, no busin
 | 🚧 | `GET /api/v1/tools` | `[]` |
 | 🚧 | `GET /api/v1/assistants` | `[]` |
 | 🚧 | `GET /api/v1/variables` | `[]` |
-| 🚧 | `GET /api/v1/document-store/stores` | `[]` |
-| 🚧 | `GET /api/v1/marketplaces/templates` | `[]` |
+| ✅ | `GET /api/v1/document-store/stores` | Full CRUD (Step 7) |
+| ✅ | `GET /api/v1/marketplaces/templates` | 55 static templates (Step 7) |
 
 **Goal**: UI loads fully, no console errors, flow editor palette populated.
 
@@ -144,12 +144,13 @@ Full CRUD for custom tools and assistants.
 
 | Status | Endpoint | Notes |
 |---|---|---|
-| 🔲 | `GET /api/v1/document-store/stores` | List (upgrade from stub) |
-| 🔲 | `POST /api/v1/document-store/stores` | Create |
-| 🔲 | `PUT /api/v1/document-store/stores/:id` | Update |
-| 🔲 | `DELETE /api/v1/document-store/stores/:id` | Delete |
-| 🔲 | `GET /api/v1/upsert-history/:id` | Vector upsert history |
-| 🔲 | `GET /api/v1/marketplaces/templates` | Template list (upgrade from stub) |
+| ✅ | `GET /api/v1/document-store/stores` | List with parsed arrays + totals |
+| ✅ | `GET /api/v1/document-store/store/:id` | Get by ID with totals |
+| ✅ | `POST /api/v1/document-store/store` | Create |
+| ✅ | `PUT /api/v1/document-store/store/:id` | Update |
+| ✅ | `DELETE /api/v1/document-store/store/:id` | Delete |
+| ✅ | `GET /api/v1/upsert-history/:id` | Stub returning `[]` |
+| ✅ | `GET /api/v1/marketplaces/templates` | 55 static templates from Flowise |
 
 **Goal**: Document ingestion and template marketplace functional.
 

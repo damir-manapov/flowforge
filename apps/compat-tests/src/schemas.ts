@@ -174,3 +174,57 @@ export const AssistantSchema = z.object({
 })
 
 export const AssistantListSchema = z.array(AssistantSchema)
+
+// ── Document Store ───────────────────────────────────────────────────
+
+/** Shape returned by POST /document-store/store (raw strings for loaders/whereUsed). */
+export const DocumentStoreCreatedSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  loaders: z.string(),
+  whereUsed: z.string(),
+  status: z.string(),
+  createdDate: z.string(),
+  updatedDate: z.string(),
+})
+
+/** Shape returned by GET /document-store/stores (parsed arrays + totals). */
+export const DocumentStoreListItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  loaders: z.array(z.unknown()),
+  whereUsed: z.array(z.unknown()),
+  status: z.string(),
+  totalChars: z.number(),
+  totalChunks: z.number(),
+  createdDate: z.string(),
+  updatedDate: z.string(),
+})
+
+export const DocumentStoreListSchema = z.array(DocumentStoreListItemSchema)
+
+/** Shape returned by GET /document-store/store/:id. */
+export const DocumentStoreDetailSchema = DocumentStoreListItemSchema
+
+/** Shape returned by DELETE /document-store/store/:id. */
+export const DocumentStoreDeleteResultSchema = z.object({
+  deleted: z.number(),
+})
+
+// ── Marketplace Templates ────────────────────────────────────────────
+
+export const MarketplaceTemplateSchema = z.object({
+  id: z.number(),
+  templateName: z.string(),
+  flowData: z.string().optional(),
+  badge: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  type: z.string().nullable().optional(),
+  framework: z.union([z.array(z.string()), z.string(), z.null()]).optional(),
+  usecases: z.union([z.array(z.string()), z.null()]).optional(),
+  categories: z.array(z.string()).optional(),
+})
+
+export const MarketplaceTemplateListSchema = z.array(MarketplaceTemplateSchema)
