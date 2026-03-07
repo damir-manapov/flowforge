@@ -127,14 +127,14 @@ Full CRUD for custom tools and assistants.
 
 | Status | Endpoint | Notes |
 |---|---|---|
-| 🔲 | `GET /api/v1/tools` | List (upgrade from stub) |
-| 🔲 | `POST /api/v1/tools` | Create |
-| 🔲 | `PUT /api/v1/tools/:id` | Update |
-| 🔲 | `DELETE /api/v1/tools/:id` | Delete |
-| 🔲 | `GET /api/v1/assistants` | List (upgrade from stub) |
-| 🔲 | `POST /api/v1/assistants` | Create |
-| 🔲 | `PUT /api/v1/assistants/:id` | Update |
-| 🔲 | `DELETE /api/v1/assistants/:id` | Delete |
+| ✅ | `GET /api/v1/tools` | List |
+| ✅ | `POST /api/v1/tools` | Create |
+| ✅ | `PUT /api/v1/tools/:id` | Update (merge semantics) |
+| ✅ | `DELETE /api/v1/tools/:id` | Delete (DeleteResult shape) |
+| ✅ | `GET /api/v1/assistants` | List |
+| ✅ | `POST /api/v1/assistants` | Create (local persistence, no OpenAI call) |
+| ✅ | `PUT /api/v1/assistants/:id` | Update (local only) |
+| ✅ | `DELETE /api/v1/assistants/:id` | Delete (local only) |
 
 **Goal**: Full tool and assistant management through the UI.
 

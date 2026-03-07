@@ -4,6 +4,7 @@ import fastifyMultipart from '@fastify/multipart'
 import fastifyRateLimit from '@fastify/rate-limit'
 import Fastify, { type FastifyError } from 'fastify'
 import { registerApiKeyRoutes } from './routes/apikeys.js'
+import { registerAssistantRoutes } from './routes/assistants.js'
 import { registerAttachmentRoutes } from './routes/attachments.js'
 import { registerChatflowRoutes } from './routes/chatflows.js'
 import { registerCredentialRoutes } from './routes/credentials.js'
@@ -11,6 +12,7 @@ import { registerNodeRoutes } from './routes/nodes.js'
 import { registerPingRoutes } from './routes/ping.js'
 import { registerPredictionRoutes } from './routes/prediction.js'
 import { registerStubRoutes } from './routes/stubs.js'
+import { registerToolRoutes } from './routes/tools.js'
 import { registerVariableRoutes } from './routes/variables.js'
 
 function parseCorsOrigin(): boolean | string | string[] {
@@ -65,6 +67,8 @@ export async function buildServer() {
   registerCredentialRoutes(app)
   registerVariableRoutes(app)
   registerApiKeyRoutes(app)
+  registerToolRoutes(app)
+  registerAssistantRoutes(app)
   registerStubRoutes(app)
 
   app.setNotFoundHandler((_req, reply) => {

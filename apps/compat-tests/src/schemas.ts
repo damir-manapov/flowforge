@@ -145,3 +145,32 @@ export const ApiKeySchema = z.object({
 })
 
 export const ApiKeyListSchema = z.array(ApiKeySchema)
+
+// ── Tools ────────────────────────────────────────────────────────────
+
+export const ToolSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  color: z.string(),
+  iconSrc: z.string().nullable(),
+  schema: z.string().nullable(),
+  func: z.string().nullable(),
+  createdDate: z.string(),
+  updatedDate: z.string(),
+})
+
+export const ToolListSchema = z.array(ToolSchema)
+
+// ── Assistants ───────────────────────────────────────────────────────
+
+export const AssistantSchema = z.object({
+  id: z.string(),
+  details: z.string(),
+  credential: z.string(),
+  iconSrc: z.string().nullable(),
+  createdDate: z.string(),
+  updatedDate: z.string(),
+})
+
+export const AssistantListSchema = z.array(AssistantSchema)
