@@ -11,6 +11,8 @@ interface PredictionParams {
 interface PredictionBody {
   question?: string | undefined
   streaming?: boolean | undefined
+  chatId?: string | undefined
+  overrideConfig?: Record<string, unknown> | undefined
 }
 
 export function registerPredictionRoutes(app: FastifyInstance): void {
@@ -43,7 +45,10 @@ export function registerPredictionRoutes(app: FastifyInstance): void {
     }
 
     if (body.streaming === true) {
-      await streamPrediction(reply, question, chatflow)
+      await streamPrediction(reply, question, chatflow, {
+        chatId: body.chatId,
+        overrideConfig: body.overrideConfig,
+      })
       return
     }
 

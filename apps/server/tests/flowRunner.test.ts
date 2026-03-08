@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildFlow,
   extractInputName,
   type FlowEdge,
   type FlowNode,
@@ -157,5 +158,41 @@ describe('extractInputName', () => {
 
   it('handles handle with input keyword', () => {
     expect(extractInputName('node_0-input-cache-BaseCache')).toBe('cache')
+  })
+})
+
+// ── buildFlow with overrideConfig ────────────────────────────────────
+
+describe('buildFlow overrideConfig', () => {
+  function makeMemoryNode(id: string): FlowNode {
+    return {
+      id,
+      data: {
+        name: 'bufferMemory',
+        type: 'BufferMemory',
+        label: 'Buffer Memory',
+        inputs: { sessionId: '', memoryKey: 'chat_history' },
+      },
+    }
+  }
+
+  it('injects sessionId into node inputs when overrideConfig is provided', async () => {
+    const memNode = makeMemoryNode('mem_0')
+    const flow = parseFlowData(JSON.stringify({ nodes: [memNode], edges: [] }))
+
+    const instances = await buildFlow(flow, { sessionId: 'my-custom-session' })
+    const mem = instances.get('mem_0') as { memoryKey: string }
+    expect(mem).toBeDefined()
+    expect(mem.memoryKey).toBe('chat_history')
+  })
+
+  it('does not inject override keys that do not exist in node inputs', async () => {
+    const node = makeNode('a', 'bufferMemory')
+    // node has empty inputs {} — no sessionId key at all
+    const flow = parseFlowData(JSON.stringify({ nodes: [node], edges: [] }))
+
+    // Should still build without error
+    const instances = await buildFlow(flow, { unknownKey: 'value' })
+    expect(instances.has('a')).toBe(true)
   })
 })

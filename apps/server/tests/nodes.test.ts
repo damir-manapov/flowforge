@@ -122,6 +122,31 @@ describe('bufferMemory', () => {
     })
     expect(mem2.getMessages()).toHaveLength(0)
   })
+
+  it('uses chatId-derived sessionId when injected via overrideConfig', async () => {
+    clearAllSessions()
+    // Simulates what happens when flowRunner injects sessionId from overrideConfig
+    const chatSessionId = 'chat-abc-123'
+    const mem = await initBufferMemory({
+      ...baseData,
+      inputs: { ...baseData.inputs, sessionId: chatSessionId },
+    })
+    mem.addMessage(new HumanMessage('hello from chat abc'))
+
+    // Different session should not see those messages
+    const mem2 = await initBufferMemory({
+      ...baseData,
+      inputs: { ...baseData.inputs, sessionId: 'chat-xyz-456' },
+    })
+    expect(mem2.getMessages()).toHaveLength(0)
+
+    // Same session should see them
+    const mem3 = await initBufferMemory({
+      ...baseData,
+      inputs: { ...baseData.inputs, sessionId: chatSessionId },
+    })
+    expect(mem3.getMessages()).toHaveLength(1)
+  })
 })
 
 // ── ConversationChain ────────────────────────────────────────────────

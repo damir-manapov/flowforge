@@ -21,6 +21,12 @@ export interface PredictionResult {
   memoryType: string | null
 }
 
+/** Runtime options passed from the prediction request body. */
+export interface PredictionOptions {
+  chatId?: string | undefined
+  overrideConfig?: Record<string, unknown> | undefined
+}
+
 const STUB_TOKEN_DELAY_MS = Math.max(0, Number(process.env.STUB_TOKEN_DELAY_MS ?? 50) || 0)
 
 export function getStubTokenDelayMs(): number {
@@ -88,21 +94,33 @@ export function allNodesSupported(flowDataJson: string): boolean {
 /** Stream a real LLM prediction response via SSE.
  *  Builds the flow graph, invokes the ending chain, and streams tokens.
  */
-async function streamRealPrediction(reply: FastifyReply, question: string, chatflow: Chatflow): Promise<void> {
+async function streamRealPrediction(
+  reply: FastifyReply,
+  question: string,
+  chatflow: Chatflow,
+  opts: PredictionOptions = {},
+): Promise<void> {
   initSSE(reply)
   const stopKeepAlive = startKeepAlive(reply)
 
   try {
-    const { flow, instances } = await executeFlow(chatflow.flowData)
+    const chatId = opts.chatId || randomUUID()
+    const chatMessageId = randomUUID()
+    // In Flowise, sessionId can come from overrideConfig or defaults to chatId
+    const sessionId = (opts.overrideConfig?.sessionId as string) || chatId
+
+    // Merge overrideConfig + sessionId into the flow so memory nodes get the right session
+    const overrideConfig: Record<string, unknown> = {
+      ...opts.overrideConfig,
+      sessionId,
+    }
+
+    const { flow, instances } = await executeFlow(chatflow.flowData, overrideConfig)
     const chain = instances.get(flow.endingNode.id) as FlowChain
 
     if (!chain?.stream) {
       throw new Error('Ending node does not support streaming')
     }
-
-    const chatId = randomUUID()
-    const chatMessageId = randomUUID()
-    const sessionId = randomUUID()
 
     // 1. start
     writeSSE(reply, 'start', '')
@@ -144,7 +162,12 @@ async function streamRealPrediction(reply: FastifyReply, question: string, chatf
  *  Uses real LLM flow execution when all node types are supported.
  *  Falls back to stub tokens otherwise.
  */
-export async function streamPrediction(reply: FastifyReply, question: string, chatflow: Chatflow): Promise<void> {
+export async function streamPrediction(
+  reply: FastifyReply,
+  question: string,
+  chatflow: Chatflow,
+  opts: PredictionOptions = {},
+): Promise<void> {
   // Validate credentials before streaming
   const credIds = extractCredentialIds(chatflow.flowData)
   const missing = findMissingCredential(credIds)
@@ -158,7 +181,7 @@ export async function streamPrediction(reply: FastifyReply, question: string, ch
   // Try real flow execution if all nodes are supported
   if (allNodesSupported(chatflow.flowData)) {
     try {
-      return await streamRealPrediction(reply, question, chatflow)
+      return await streamRealPrediction(reply, question, chatflow, opts)
     } catch (err) {
       // Fall through to stub on flow execution error
       const msg = err instanceof Error ? err.message : String(err)

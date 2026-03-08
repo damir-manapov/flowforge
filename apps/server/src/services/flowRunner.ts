@@ -138,7 +138,10 @@ export function resolveCredential(credentialId: string): Record<string, unknown>
  * Walks the sorted nodes, resolves credentials, instantiates LangChain objects,
  * and wires upstream outputs into downstream inputs via edge connections.
  */
-export async function buildFlow(flow: ParsedFlow): Promise<Map<string, unknown>> {
+export async function buildFlow(
+  flow: ParsedFlow,
+  overrideConfig?: Record<string, unknown>,
+): Promise<Map<string, unknown>> {
   const instances = new Map<string, unknown>()
 
   for (const node of flow.sorted) {
@@ -148,8 +151,18 @@ export async function buildFlow(flow: ParsedFlow): Promise<Map<string, unknown>>
       credentialData = resolveCredential(node.data.credential)
     }
 
-    // 2. Resolve upstream inputs from edges
-    const resolvedInputs = { ...node.data.inputs }
+    // 2. Merge overrideConfig into node inputs (Flowise injects sessionId etc.)
+    const resolvedInputs: Record<string, unknown> = { ...node.data.inputs }
+    if (overrideConfig) {
+      for (const [key, value] of Object.entries(overrideConfig)) {
+        // Only override if the node declares this input (has it in inputs or it's empty)
+        if (key in resolvedInputs || resolvedInputs[key] === '' || resolvedInputs[key] == null) {
+          resolvedInputs[key] = value
+        }
+      }
+    }
+
+    // 3. Resolve upstream inputs from edges
     for (const edge of flow.edges) {
       if (edge.target !== node.id) continue
 
@@ -160,7 +173,7 @@ export async function buildFlow(flow: ParsedFlow): Promise<Map<string, unknown>>
       }
     }
 
-    // 3. Instantiate the node
+    // 4. Instantiate the node
     const instance = await initNode(
       node.data.name,
       {
@@ -192,8 +205,9 @@ export function extractInputName(targetHandle: string): string | undefined {
 /** Get the ending node's instance (the runnable chain/agent). */
 export async function executeFlow(
   flowDataJson: string,
+  overrideConfig?: Record<string, unknown>,
 ): Promise<{ flow: ParsedFlow; instances: Map<string, unknown> }> {
   const flow = parseFlowData(flowDataJson)
-  const instances = await buildFlow(flow)
+  const instances = await buildFlow(flow, overrideConfig)
   return { flow, instances }
 }
