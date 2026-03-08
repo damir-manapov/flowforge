@@ -11,7 +11,11 @@ flowforge/
     compat-tests/      — Black-box compatibility test suite
   packages/
     test-utils/        — Shared HTTP client, SSE parser, golden recorder
-  compose/             — Docker Compose for running the server
+  compose/
+    docker-compose.yml         — Server-only (build & run on :4000)
+    docker-compose.dev-ui.yml  — Flowise UI via Caddy (:8080) + local dev server
+    docker-compose.flowise.yml — Official Flowise on :3001
+    docker-compose.record.yml  — Flowise + Caddy recording proxy
 ```
 
 ## Prerequisites
@@ -55,19 +59,22 @@ pnpm compose:up
 
 Server listens on port 4000 (mapped from container port 3000).
 
-## Run with Flowise UI
+## Run with Flowise UI (dev mode)
+
+Start the local dev server, then bring up the UI:
 
 ```bash
-pnpm compose:up:ui         # API on :4000 + Flowise UI via Caddy on :3000
-pnpm compose:down:ui       # Stop everything
+cd apps/server && pnpm dev          # Starts bun on :3000
+pnpm compose:up:dev-ui              # Caddy serves Flowise UI on :8080, proxies API to :3000
+pnpm compose:down:dev-ui            # Stop UI containers
 ```
 
-Opens the original Flowise UI at `http://localhost:3000`, backed by the FlowForge API.
+Opens the original Flowise UI at `http://localhost:8080`, backed by the local FlowForge dev server.
 
 ## Run Flowise (for recording/comparison)
 
 ```bash
-pnpm compose:flowise:up    # Start Flowise on port 3001
+pnpm compose:flowise:up    # Start Flowise on :3001
 pnpm compose:flowise:down  # Stop Flowise
 ```
 
@@ -75,26 +82,20 @@ pnpm compose:flowise:down  # Stop Flowise
 
 ### Against our reimplementation
 
-Start the server first, then run:
-
-```bash
-BASE_URL=http://localhost:4000/api/v1 TARGET_NAME=reimpl pnpm test
-```
-
-Or using the compat-tests scripts:
+Start the dev server (`pnpm dev` in `apps/server`), then:
 
 ```bash
 cd apps/compat-tests
-pnpm test:reimpl
+pnpm test:reimpl            # BASE_URL=http://localhost:3000/api/v1
 ```
 
 ### Against official Flowise
 
-Start official Flowise on port 3000, then:
+Start official Flowise (`pnpm compose:flowise:up`), then:
 
 ```bash
 cd apps/compat-tests
-pnpm test:official
+pnpm test:official           # BASE_URL=http://localhost:3001/api/v1
 ```
 
 ### Record goldens
@@ -124,8 +125,9 @@ Tests communicate with the server **only via HTTP**. No imports from server code
 
 ```
 tests/api/
-  01_ping.test.ts              — Connectivity
-  02_chatflows_crud.test.ts    — Chatflows CRUD
+  01_ping.test.ts                  — Connectivity
+  02_chatflows_crud.test.ts        — Chatflows CRUD
+  03_credentials_crud.test.ts      — Credentials CRUD
   03_prediction_nonstream.test.ts  — Non-streaming prediction
   04_prediction_stream_sse.test.ts — SSE streaming
   05_prediction_errors.test.ts     — Error cases
@@ -133,6 +135,10 @@ tests/api/
   07_auth_headers.test.ts          — Auth & headers
   08_concurrency.test.ts           — Parallel requests
   09_regression_quirks.test.ts     — Edge cases & quirks
+  10_boot_endpoints.test.ts        — Boot / config endpoints
+  11_variables_apikeys.test.ts     — Variables & API keys CRUD
+  12_tools_assistants.test.ts      — Tools & assistants CRUD
+  13_documentstore_marketplace.test.ts — Document store & marketplace
 
 tests/integration/
   01_flowise_embed_smoke.test.ts   — Client integration smoke
@@ -152,6 +158,7 @@ tests/integration/
 | `BODY_LIMIT` | Max request body size in bytes | `2097152` (2 MB) |
 | `STUB_TOKEN_DELAY_MS` | Delay between SSE tokens in streaming mode | `50` |
 | `MAX_CHATFLOWS` | Max chatflows in memory (LRU eviction) | `10000` |
+| `FLOWISE_SECRETKEY_OVERWRITE` | Fixed AES key for credential encryption (omit for random key) | — |
 
 ### Tests (`apps/compat-tests`)
 
@@ -184,10 +191,16 @@ tests/integration/
 ## Docker Compose
 
 ```bash
-pnpm compose:up        # Start
-pnpm compose:down      # Stop
-pnpm compose:restart   # Restart
-pnpm compose:reset     # Stop + remove volumes
+pnpm compose:up            # Start server on :4000
+pnpm compose:down          # Stop server
+pnpm compose:restart       # Restart server
+pnpm compose:reset         # Stop + remove volumes
+pnpm compose:up:dev-ui     # Flowise UI on :8080 (needs local dev server on :3000)
+pnpm compose:down:dev-ui   # Stop UI containers
+pnpm compose:flowise:up    # Official Flowise on :3001
+pnpm compose:flowise:down  # Stop Flowise
+pnpm compose:record:up     # Flowise + recording proxy
+pnpm compose:record:down   # Stop recording stack
 ```
 
 ## Unit Tests
