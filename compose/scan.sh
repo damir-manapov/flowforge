@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 SERVER_IMAGE="compose-flowforge-server"
-FLOWISE_IMAGE="flowiseai/flowise:1.8.4"
+FLOWISE_IMAGE="flowiseai/flowise:3.0.13"
 CADDY_IMAGE="caddy:alpine"
 
 SEVERITY="CRITICAL,HIGH"

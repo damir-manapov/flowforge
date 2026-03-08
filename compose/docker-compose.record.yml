@@ -1,6 +1,6 @@
 services:
   flowise:
-    image: flowiseai/flowise:1.8.4
+    image: flowiseai/flowise:3.0.13
     environment:
       PORT: "3000"
       APIKEY_PATH: /root/.flowise
@@ -25,7 +25,7 @@ services:
         condition: service_healthy
 
   flowise-ui-copy:
-    image: flowiseai/flowise:1.8.4
+    image: flowiseai/flowise:3.0.13
     entrypoint: ["sh", "-c", "cp -r /usr/local/lib/node_modules/flowise/node_modules/flowise-ui/build/* /out/"]
     volumes:
       - flowise-ui:/out
