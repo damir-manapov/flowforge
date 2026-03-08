@@ -306,20 +306,20 @@ session cookie. The auth flow is: register → login → cookie-based session.
 
 | Status | Endpoint | Notes |
 |---|---|---|
-| 🔲 | `GET /api/v1/settings` | Returns `{ PLATFORM_TYPE: "open source" }` — public, no auth needed |
-| 🔲 | `GET /api/v1/account/basic-auth` | Returns `{ status: false }` — checks if basic-auth mode |
-| 🔲 | `POST /api/v1/auth/resolve` | Body `{}` → `{ redirectUrl }` — see resolve logic below |
-| 🔲 | `POST /api/v1/account/register` | Nested body (see shape below) → 201 user object |
-| 🔲 | `POST /api/v1/auth/login` | `{ email, password }` → user with roles/workspaces/permissions + set-cookie |
-| 🔲 | `POST /api/v1/account/logout` | Clears session → `{ message: "logged_out", redirectTo: "/login" }` |
-| 🔲 | `GET /api/v1/auth/permissions/:name` | Check feature permission (e.g., `API_KEY`) → `{ authorized: true }` |
+| ✅ | `GET /api/v1/settings` | Returns `{ PLATFORM_TYPE: "open source" }` — public, no auth needed |
+| ✅ | `GET /api/v1/account/basic-auth` | Returns `{ status: false }` — checks if basic-auth mode |
+| ✅ | `POST /api/v1/auth/resolve` | Body `{}` → `{ redirectUrl }` — see resolve logic below |
+| ✅ | `POST /api/v1/account/register` | Nested body (see shape below) → 201 user object |
+| ✅ | `POST /api/v1/auth/login` | `{ email, password }` → user with roles/workspaces/permissions + set-cookie |
+| ✅ | `POST /api/v1/account/logout` | Clears session → `{ message: "logged_out", redirectTo: "/login" }` |
+| ✅ | `GET /api/v1/auth/permissions/:name` | Check feature permission (e.g., `API_KEY`) → `{ authorized: true }` |
 
 ### User Profile
 
 | Status | Endpoint | Notes |
 |---|---|---|
-| 🔲 | `GET /api/v1/user?id=:id` | Get user profile: `{ id, name, email, status, createdDate, ... }` |
-| 🔲 | `PUT /api/v1/user` | Update profile `{ id, name, email }` or password `{ id, oldPassword, newPassword, confirmPassword }` |
+| ✅ | `GET /api/v1/user?id=:id` | Get user profile: `{ id, name, email, status, createdDate, ... }` |
+| ✅ | `PUT /api/v1/user` | Update profile `{ id, name, email }` or password `{ id, oldPassword, newPassword, confirmPassword }` |
 
 ### Settings response shape
 

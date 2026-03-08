@@ -6,6 +6,7 @@ import Fastify, { type FastifyError } from 'fastify'
 import { registerApiKeyRoutes } from './routes/apikeys.js'
 import { registerAssistantRoutes } from './routes/assistants.js'
 import { registerAttachmentRoutes } from './routes/attachments.js'
+import { registerAuthRoutes } from './routes/auth.js'
 import { registerChatflowRoutes } from './routes/chatflows.js'
 import { registerCredentialRoutes } from './routes/credentials.js'
 import { registerDocumentStoreRoutes } from './routes/documentStores.js'
@@ -13,6 +14,7 @@ import { registerNodeRoutes } from './routes/nodes.js'
 import { registerPingRoutes } from './routes/ping.js'
 import { registerPredictionRoutes } from './routes/prediction.js'
 import { registerToolRoutes } from './routes/tools.js'
+import { registerUserRoutes } from './routes/users.js'
 import { registerVariableRoutes } from './routes/variables.js'
 
 function parseCorsOrigin(): boolean | string | string[] {
@@ -66,6 +68,8 @@ export async function buildServer() {
   })
 
   registerPingRoutes(app)
+  registerAuthRoutes(app)
+  registerUserRoutes(app)
   registerChatflowRoutes(app)
   registerPredictionRoutes(app)
   registerAttachmentRoutes(app)
