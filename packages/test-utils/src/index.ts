@@ -1,6 +1,8 @@
 export { runConcurrent } from './concurrency.js'
 export type { TestConfig } from './config.js'
 export { getConfig } from './config.js'
+export type { FlowiseSSEEvent } from './flowise-events.js'
+export { parseFlowiseEvents } from './flowise-events.js'
 export { GoldenComparator } from './golden-comparator.js'
 export { GoldenRecorder } from './golden-recorder.js'
 export type { HttpRequestOptions, HttpResponse, MultipartField } from './http-client.js'

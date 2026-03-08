@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildUploadedFile } from '../src/services/attachmentService.js'
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+import { UUID_RE } from './_helpers/fixtures.js'
 
 describe('buildUploadedFile', () => {
   it('returns an UploadedFile with sanitized name', () => {

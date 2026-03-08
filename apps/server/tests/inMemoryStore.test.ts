@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createChatflow, deleteChatflow as deleteViaService, updateChatflow } from '../src/services/chatflowService.js'
-import type { Chatflow } from '../src/storage/inMemoryStore.js'
 import {
   clearStore,
   deleteChatflow,
@@ -10,28 +9,9 @@ import {
   setChatflow,
   storeSize,
 } from '../src/storage/inMemoryStore.js'
+import { makeChatflow } from './_helpers/fixtures.js'
 
 afterEach(() => clearStore())
-
-function makeChatflow(overrides: Partial<Chatflow> = {}): Chatflow {
-  return {
-    id: 'test-id',
-    name: 'Test',
-    flowData: '{}',
-    deployed: false,
-    isPublic: false,
-    apikeyid: '',
-    chatbotConfig: null,
-    apiConfig: null,
-    analytic: null,
-    speechToText: null,
-    category: null,
-    type: 'CHATFLOW' as const,
-    createdDate: '2024-01-01T00:00:00.000Z',
-    updatedDate: '2024-01-01T00:00:00.000Z',
-    ...overrides,
-  }
-}
 
 describe('inMemoryStore (CRUD)', () => {
   describe('setChatflow / getChatflowById', () => {

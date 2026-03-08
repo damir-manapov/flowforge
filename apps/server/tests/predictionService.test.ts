@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { generateStubResponse, getStubTokenDelayMs, getStubTokens } from '../src/services/predictionService.js'
+import { UUID_RE } from './_helpers/fixtures.js'
 
 describe('predictionService', () => {
   describe('generateStubResponse', () => {
@@ -11,10 +12,9 @@ describe('predictionService', () => {
 
     it('has valid UUID fields', () => {
       const result = generateStubResponse('Hi')
-      const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-      expect(result.chatId).toMatch(uuidRe)
-      expect(result.chatMessageId).toMatch(uuidRe)
-      expect(result.sessionId).toMatch(uuidRe)
+      expect(result.chatId).toMatch(UUID_RE)
+      expect(result.chatMessageId).toMatch(UUID_RE)
+      expect(result.sessionId).toMatch(UUID_RE)
     })
 
     it('generates unique IDs per call', () => {

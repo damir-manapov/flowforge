@@ -1,4 +1,4 @@
-import { collectSSE } from '@flowforge/test-utils'
+import { collectSSE, parseFlowiseEvents } from '@flowforge/test-utils'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { client, hasLLM, log, recorder, shouldRecord } from '../../src/setup.js'
 
@@ -46,15 +46,7 @@ describe.skipIf(!hasLLM)('04 — Prediction SSE Streaming', () => {
 
     expect(result.events.length).toBeGreaterThan(0)
 
-    // Flowise wraps event type inside a JSON data envelope:
-    //   data: {"event":"token","data":"Hello"}
-    const parsed = result.events.flatMap((e) => {
-      try {
-        return [JSON.parse(e.data) as { event: string; data: string }]
-      } catch {
-        return []
-      }
-    })
+    const parsed = parseFlowiseEvents(result.events)
 
     const tokenEvents = parsed.filter((e) => e.event === 'token')
     expect(tokenEvents.length).toBeGreaterThan(0)
@@ -87,14 +79,7 @@ describe.skipIf(!hasLLM)('04 — Prediction SSE Streaming', () => {
       }),
     })
 
-    // Parse Flowise JSON envelope
-    const parsed = result.events.flatMap((e) => {
-      try {
-        return [JSON.parse(e.data) as { event: string; data: string }]
-      } catch {
-        return []
-      }
-    })
+    const parsed = parseFlowiseEvents(result.events)
 
     const metaEvent = parsed.find((e) => e.event === 'metadata')
     expect(metaEvent).toBeDefined()

@@ -1,18 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { endSSE, initSSE, startKeepAlive, writeKeepAlive, writeSSE } from '../src/sse/sseWriter.js'
+import { createMockReply } from './_helpers/mockReply.js'
 
 function mockReply(destroyed = false) {
-  const self = {
-    raw: {
-      destroyed,
-      write: vi.fn(),
-      end: vi.fn(),
-      flushHeaders: vi.fn(),
-    },
-    header: vi.fn().mockReturnThis(),
-    status: vi.fn().mockReturnThis(),
-  } as unknown as import('fastify').FastifyReply
-  return self
+  return createMockReply(destroyed).reply
 }
 
 describe('sseWriter', () => {

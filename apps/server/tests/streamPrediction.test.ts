@@ -1,40 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
+import { makeChatflow } from './_helpers/fixtures.js'
+import { createMockReply } from './_helpers/mockReply.js'
 
-function createMockReply() {
-  const chunks: string[] = []
-  const raw = {
-    destroyed: false,
-    write: vi.fn((data: string) => chunks.push(data)),
-    end: vi.fn(() => {
-      raw.destroyed = true
-    }),
-    flushHeaders: vi.fn(),
-  }
-  const reply = {
-    raw,
-    header: vi.fn().mockReturnThis(),
-    status: vi.fn().mockReturnThis(),
-  }
-  return { reply, raw, chunks }
-}
-
-/** Minimal chatflow stub with no credential references. */
-const stubChatflow = {
-  id: '00000000-0000-0000-0000-000000000000',
-  name: 'test',
-  flowData: '{"nodes":[],"edges":[]}',
-  deployed: false,
-  isPublic: false,
-  apikeyid: '',
-  chatbotConfig: null,
-  apiConfig: null,
-  analytic: null,
-  speechToText: null,
-  category: null,
-  type: 'CHATFLOW' as const,
-  createdDate: '',
-  updatedDate: '',
-}
+const stubChatflow = makeChatflow()
 
 describe('streamPrediction', () => {
   it('sends start, token, metadata, and end events in Flowise JSON-envelope format', async () => {

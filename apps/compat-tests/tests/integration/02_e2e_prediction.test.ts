@@ -15,6 +15,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseFlowiseEvents } from '@flowforge/test-utils'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { client, deepseekApiKey, log } from '../../src/setup.js'
 
@@ -26,28 +27,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 function buildFlowData(credentialId: string): string {
   const raw = readFileSync(resolve(__dirname, '../fixtures/deepseek-chatflow.json'), 'utf-8')
   return raw.replaceAll('CREDENTIAL_PLACEHOLDER', credentialId)
-}
-
-interface FlowiseSSEEvent {
-  event: string // "start" | "token" | "metadata" | "end" | "error"
-  data: string
-}
-
-/** Parse the Flowise JSON-envelope SSE events: `data: {"event":"token","data":"Hello"}` */
-function parseFlowiseEvents(sseEvents: { data: string }[]): FlowiseSSEEvent[] {
-  const out: FlowiseSSEEvent[] = []
-  for (const e of sseEvents) {
-    if (!e.data) continue
-    try {
-      const parsed = JSON.parse(e.data) as { event?: string; data?: string }
-      if (parsed.event) {
-        out.push({ event: parsed.event, data: parsed.data ?? '' })
-      }
-    } catch {
-      // non-JSON data lines (heartbeats, etc.) — skip
-    }
-  }
-  return out
 }
 
 // ── Test suite ───────────────────────────────────────────────────────

@@ -10,7 +10,7 @@ flowforge/
     server/            — Flowise-compatible Fastify server
     compat-tests/      — Black-box compatibility test suite
   packages/
-    test-utils/        — Shared HTTP client, SSE parser, golden recorder
+    test-utils/        — Shared HTTP client, SSE parser, Flowise event parser, golden recorder
   compose/
     docker-compose.yml         — Server-only (build & run on :4000)
     docker-compose.dev-ui.yml  — Flowise UI via Caddy (:8080) + local dev server
@@ -142,6 +142,7 @@ tests/api/
 
 tests/integration/
   01_flowise_embed_smoke.test.ts   — Client integration smoke
+  02_e2e_prediction.test.ts        — E2E prediction with Deepseek
 ```
 
 ## Environment Variables
@@ -154,7 +155,7 @@ tests/integration/
 | `HOST` | Server bind address | `0.0.0.0` |
 | `LOG_LEVEL` | Pino log level (`debug`, `info`, `warn`, `error`) | `info` |
 | `CORS_ORIGIN` | Allowed CORS origins (comma-separated) | `*` |
-| `RATE_LIMIT_MAX` | Max requests per minute per IP | `200` |
+| `RATE_LIMIT_MAX` | Max requests per minute per IP (0 = disabled) | `0` |
 | `BODY_LIMIT` | Max request body size in bytes | `2097152` (2 MB) |
 | `STUB_TOKEN_DELAY_MS` | Delay between SSE tokens in streaming mode | `50` |
 | `MAX_CHATFLOWS` | Max chatflows in memory (LRU eviction) | `10000` |
@@ -169,6 +170,7 @@ tests/integration/
 | `TARGET_NAME` | `official` or `reimpl` | `reimpl` |
 | `RECORD_GOLDENS` | Set to `1` to record golden baselines | `0` |
 | `HAS_LLM` | Set to `1` if target has real LLM nodes | auto for reimpl |
+| `DEEPSEEK_API_KEY` | Deepseek API key for E2E prediction tests | — (optional) |
 
 ## Adding New Compatibility Tests
 
@@ -205,7 +207,7 @@ pnpm compose:record:down   # Stop recording stack
 
 ## Unit Tests
 
-Run unit tests for shared packages (normalize, SSE parser, concurrency, retry):
+Run unit tests for all packages and apps:
 
 ```bash
 pnpm vitest run
