@@ -1,0 +1,22 @@
+services:
+  flowise-ui-copy:
+    image: flowiseai/flowise:1.8.4
+    entrypoint: ["sh", "-c", "cp -r /usr/local/lib/node_modules/flowise/node_modules/flowise-ui/build/* /out/"]
+    volumes:
+      - flowise-ui:/out
+
+  caddy:
+    image: caddy:alpine
+    ports:
+      - "8080:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - flowise-ui:/srv:ro
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile:ro
+    depends_on:
+      flowise-ui-copy:
+        condition: service_completed_successfully
+
+volumes:
+  flowise-ui:
