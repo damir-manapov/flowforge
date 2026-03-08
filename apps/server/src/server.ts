@@ -10,6 +10,7 @@ import { registerAuthRoutes } from './routes/auth.js'
 import { registerChatflowRoutes } from './routes/chatflows.js'
 import { registerCredentialRoutes } from './routes/credentials.js'
 import { registerDocumentStoreRoutes } from './routes/documentStores.js'
+import { registerExportImportRoutes } from './routes/exportImport.js'
 import { registerNodeRoutes } from './routes/nodes.js'
 import { registerPingRoutes } from './routes/ping.js'
 import { registerPredictionRoutes } from './routes/prediction.js'
@@ -80,6 +81,7 @@ export async function buildServer() {
   registerToolRoutes(app)
   registerAssistantRoutes(app)
   registerDocumentStoreRoutes(app)
+  registerExportImportRoutes(app)
 
   app.setNotFoundHandler((_req, reply) => {
     reply.status(404).send({

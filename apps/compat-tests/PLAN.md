@@ -448,11 +448,11 @@ New utility endpoints added in Flowise 3.0.
 |---|---|---|
 | ✅ | `GET /api/v1/version` | `{ version: "3.0.13" }` |
 | ✅ | `GET /api/v1/settings` | `{ PLATFORM_TYPE: "open source" }` (public, no auth) |
-| 🔲 | `POST /api/v1/export-import/export` | Body selects entity types → returns full JSON dump |
-| 🔲 | `POST /api/v1/export-import/import` | Imports a previously exported JSON dump |
+| ✅ | `POST /api/v1/export-import/export` | Body selects entity types → returns full JSON dump |
+| ✅ | `POST /api/v1/export-import/import` | Imports a previously exported JSON dump (stub) |
 | ✅ | `GET /api/v1/executions?page=1&limit=12` | List workflow executions (paginated) |
-| 🔲 | `GET /api/v1/marketplaces/custom` | Custom marketplace templates |
-| 🔲 | `GET /api/v1/chatflows/has-changed/:id` | Check if chatflow was modified (returns HTML fallback?) |
+| ✅ | `GET /api/v1/marketplaces/custom` | Custom marketplace templates (empty stub) |
+| ✅ | `GET /api/v1/chatflows/has-changed/:id` | Check if chatflow was modified (stub → false) |
 
 ### Export request body
 

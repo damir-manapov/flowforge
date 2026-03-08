@@ -423,4 +423,118 @@ describe('server integration (inject)', () => {
       expect(JSON.parse(res.body)).toEqual([])
     })
   })
+
+  // ── Step 10: Export/Import & Utility Endpoints ──────────────────────
+  describe('export-import', () => {
+    it('POST /export returns export structure with FileDefaultName', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/export-import/export',
+        payload: {},
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body)
+      expect(body.FileDefaultName).toBe('ExportData.json')
+      expect(body.ChatFlow).toEqual([])
+      expect(body.AgentFlow).toEqual([])
+      expect(body.Tool).toEqual([])
+      expect(body.Variable).toEqual([])
+    })
+
+    it('POST /export with chatflow=true includes chatflows', async () => {
+      // Create a chatflow first
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/chatflows',
+        payload: { name: 'export-cf', type: 'CHATFLOW' },
+      })
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/export-import/export',
+        payload: { chatflow: true },
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body)
+      expect(body.ChatFlow.length).toBeGreaterThanOrEqual(1)
+      expect(body.ChatFlow[0].name).toBe('export-cf')
+    })
+
+    it('POST /export with tool=true includes tools', async () => {
+      // Create a tool first
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/tools',
+        payload: { name: 'export-tool', description: 'test', schema: '{}' },
+      })
+
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/export-import/export',
+        payload: { tool: true },
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body)
+      expect(body.Tool.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('POST /import accepts body and returns success', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/export-import/import',
+        payload: { ChatFlow: [], Tool: [] },
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body)
+      expect(body.message).toBe('Import completed')
+    })
+
+    it('POST /import rejects missing body', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/export-import/import',
+        headers: { 'content-type': 'application/json' },
+        payload: 'null',
+      })
+      expect(res.statusCode).toBe(400)
+    })
+  })
+
+  describe('marketplaces', () => {
+    it('GET /marketplaces/custom returns empty array', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/marketplaces/custom',
+      })
+      expect(res.statusCode).toBe(200)
+      expect(JSON.parse(res.body)).toEqual([])
+    })
+  })
+
+  describe('chatflows/has-changed', () => {
+    it('returns hasChanged false for existing chatflow', async () => {
+      const create = await app.inject({
+        method: 'POST',
+        url: '/api/v1/chatflows',
+        payload: { name: 'change-check' },
+      })
+      const { id } = JSON.parse(create.body)
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/v1/chatflows/has-changed/${id}`,
+      })
+      expect(res.statusCode).toBe(200)
+      expect(JSON.parse(res.body)).toEqual({ hasChanged: false })
+    })
+
+    it('returns hasChanged false for unknown id', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/chatflows/has-changed/00000000-0000-0000-0000-000000000000',
+      })
+      expect(res.statusCode).toBe(200)
+      expect(JSON.parse(res.body)).toEqual({ hasChanged: false })
+    })
+  })
 })
