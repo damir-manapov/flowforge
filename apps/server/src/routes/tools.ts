@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { createTool, deleteTool, getAllTools, getToolById, updateTool } from '../services/toolService.js'
 import { sendError } from '../utils/errors.js'
+import { type PaginationQuery, paginate } from '../utils/pagination.js'
 import { isValidUUID } from '../utils/validation.js'
 
 interface IdParams {
@@ -8,9 +9,9 @@ interface IdParams {
 }
 
 export function registerToolRoutes(app: FastifyInstance): void {
-  app.get('/api/v1/tools', async (_request: FastifyRequest, reply) => {
+  app.get('/api/v1/tools', async (request: FastifyRequest<{ Querystring: PaginationQuery }>, reply) => {
     const tools = getAllTools()
-    return reply.code(200).send(tools)
+    return reply.code(200).send(paginate(tools, request.query as PaginationQuery))
   })
 
   app.get('/api/v1/tools/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {

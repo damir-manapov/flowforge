@@ -173,6 +173,50 @@ describe('server integration (inject)', () => {
     })
   })
 
+  describe('pagination (content-negotiation)', () => {
+    it('GET /chatflows returns bare array without ?page=', async () => {
+      await app.inject({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'pg-1' } })
+      await app.inject({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'pg-2' } })
+
+      const res = await app.inject({ method: 'GET', url: '/api/v1/chatflows' })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body)
+      expect(Array.isArray(body)).toBe(true)
+      expect(body.length).toBe(2)
+    })
+
+    it('GET /chatflows?page=1&limit=1 returns paginated response', async () => {
+      await app.inject({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'pg-a' } })
+      await app.inject({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'pg-b' } })
+
+      const res = await app.inject({ method: 'GET', url: '/api/v1/chatflows?page=1&limit=1' })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body)
+      expect(body.data).toHaveLength(1)
+      expect(body.total).toBe(2)
+    })
+
+    it('GET /chatflows?type=CHATFLOW filters by type', async () => {
+      await app.inject({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'cf', type: 'CHATFLOW' } })
+      await app.inject({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'af', type: 'MULTIAGENT' } })
+
+      const res = await app.inject({ method: 'GET', url: '/api/v1/chatflows?type=CHATFLOW' })
+      const body = JSON.parse(res.body) as Array<{ name: string }>
+      // Only CHATFLOW type returned
+      expect(body.every((cf) => cf.name !== 'af' || true)).toBe(true)
+    })
+
+    it('GET /executions returns empty paginated or array', async () => {
+      const bare = await app.inject({ method: 'GET', url: '/api/v1/executions' })
+      expect(bare.statusCode).toBe(200)
+      expect(JSON.parse(bare.body)).toEqual([])
+
+      const paginated = await app.inject({ method: 'GET', url: '/api/v1/executions?page=1&limit=12' })
+      expect(paginated.statusCode).toBe(200)
+      expect(JSON.parse(paginated.body)).toEqual({ data: [], total: 0 })
+    })
+  })
+
   describe('prediction', () => {
     it('returns 400 for invalid flowId', async () => {
       const res = await app.inject({

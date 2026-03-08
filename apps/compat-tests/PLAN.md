@@ -413,13 +413,13 @@ bare arrays. The UI sends `?page=1&limit=12` query parameters.
 
 | Status | Endpoint | 1.8.4 shape → 3.0 shape |
 |---|---|---|
-| 🔲 | `GET /api/v1/chatflows` | `[...]` → `{ data: [...], total }` |
-| 🔲 | `GET /api/v1/tools` | `[...]` → `{ data: [...], total }` |
-| 🔲 | `GET /api/v1/variables` | `[...]` → `{ data: [...], total }` |
-| 🔲 | `GET /api/v1/apikey` | `[...]` → `{ data: [...], total }` |
-| 🔲 | `GET /api/v1/document-store/store` | `[...]` → `{ data: [...], total }` |
-| 🔲 | `GET /api/v1/executions` | n/a → `{ data: [...], total }` (new) |
-| 🔲 | `GET /api/v1/assistants` | `[...]` → `{ data: [...], total }` |
+| ✅ | `GET /api/v1/chatflows` | `[...]` → `{ data: [...], total }` |
+| ✅ | `GET /api/v1/tools` | `[...]` → `{ data: [...], total }` |
+| ✅ | `GET /api/v1/variables` | `[...]` → `{ data: [...], total }` |
+| ✅ | `GET /api/v1/apikey` | `[...]` → `{ data: [...], total }` |
+| ✅ | `GET /api/v1/document-store/store` | `[...]` → `{ data: [...], total }` |
+| ✅ | `GET /api/v1/executions` | n/a → `{ data: [...], total }` (new) |
+| ✅ | `GET /api/v1/assistants` | `[...]` → `{ data: [...], total }` |
 
 ### Query parameters
 
@@ -446,11 +446,11 @@ New utility endpoints added in Flowise 3.0.
 
 | Status | Endpoint | Notes |
 |---|---|---|
-| 🔲 | `GET /api/v1/version` | `{ version: "3.0.13" }` |
-| 🔲 | `GET /api/v1/settings` | `{ PLATFORM_TYPE: "open source" }` (public, no auth) |
+| ✅ | `GET /api/v1/version` | `{ version: "3.0.13" }` |
+| ✅ | `GET /api/v1/settings` | `{ PLATFORM_TYPE: "open source" }` (public, no auth) |
 | 🔲 | `POST /api/v1/export-import/export` | Body selects entity types → returns full JSON dump |
 | 🔲 | `POST /api/v1/export-import/import` | Imports a previously exported JSON dump |
-| 🔲 | `GET /api/v1/executions?page=1&limit=12` | List workflow executions (paginated) |
+| ✅ | `GET /api/v1/executions?page=1&limit=12` | List workflow executions (paginated) |
 | 🔲 | `GET /api/v1/marketplaces/custom` | Custom marketplace templates |
 | 🔲 | `GET /api/v1/chatflows/has-changed/:id` | Check if chatflow was modified (returns HTML fallback?) |
 

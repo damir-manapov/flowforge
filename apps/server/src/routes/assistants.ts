@@ -7,6 +7,7 @@ import {
   updateAssistant,
 } from '../services/assistantService.js'
 import { sendError } from '../utils/errors.js'
+import { type PaginationQuery, paginate } from '../utils/pagination.js'
 import { isValidUUID } from '../utils/validation.js'
 
 interface IdParams {
@@ -19,10 +20,28 @@ interface AssistantBody {
   iconSrc?: string | null
 }
 
+interface AssistantListQuery extends PaginationQuery {
+  type?: string | undefined
+}
+
 export function registerAssistantRoutes(app: FastifyInstance): void {
-  app.get('/api/v1/assistants', async (_request: FastifyRequest, reply) => {
-    const assistants = getAllAssistants()
-    return reply.code(200).send(assistants)
+  app.get('/api/v1/assistants', async (request: FastifyRequest<{ Querystring: AssistantListQuery }>, reply) => {
+    let assistants = getAllAssistants()
+    const query = request.query as AssistantListQuery
+
+    // Filter by type (CUSTOM, OPENAI, AZURE) if specified
+    if (query.type) {
+      assistants = assistants.filter((a) => {
+        try {
+          const details = JSON.parse(a.details || '{}') as { type?: string }
+          return details.type === query.type
+        } catch {
+          return false
+        }
+      })
+    }
+
+    return reply.code(200).send(paginate(assistants, query))
   })
 
   app.get('/api/v1/assistants/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {

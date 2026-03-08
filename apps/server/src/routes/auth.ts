@@ -9,6 +9,7 @@ import {
   SESSION_COOKIE,
 } from '../services/authService.js'
 import { sendError } from '../utils/errors.js'
+import type { PaginationQuery } from '../utils/pagination.js'
 
 interface RegisterBody {
   user?: {
@@ -103,5 +104,14 @@ export function registerAuthRoutes(app: FastifyInstance): void {
   // ── Version ───────────────────────────────────────────────────────
   app.get('/api/v1/version', async (_request, reply) => {
     return reply.code(200).send({ version: '3.0.13' })
+  })
+
+  // ── Executions (stub — paginated empty list) ─────────────────────
+  app.get('/api/v1/executions', async (request: FastifyRequest<{ Querystring: PaginationQuery }>, reply) => {
+    const query = request.query as PaginationQuery
+    if (query.page != null) {
+      return reply.code(200).send({ data: [], total: 0 })
+    }
+    return reply.code(200).send([])
   })
 }

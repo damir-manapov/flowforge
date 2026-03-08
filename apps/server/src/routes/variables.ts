@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { createVariable, deleteVariable, getAllVariables, updateVariable } from '../services/variableService.js'
 import { sendError } from '../utils/errors.js'
+import { type PaginationQuery, paginate } from '../utils/pagination.js'
 import { isValidUUID } from '../utils/validation.js'
 
 interface IdParams {
@@ -14,9 +15,9 @@ interface VariableBody {
 }
 
 export function registerVariableRoutes(app: FastifyInstance): void {
-  app.get('/api/v1/variables', async (_request: FastifyRequest, reply) => {
+  app.get('/api/v1/variables', async (request: FastifyRequest<{ Querystring: PaginationQuery }>, reply) => {
     const variables = getAllVariables()
-    return reply.code(200).send(variables)
+    return reply.code(200).send(paginate(variables, request.query as PaginationQuery))
   })
 
   app.post('/api/v1/variables', async (request: FastifyRequest, reply) => {

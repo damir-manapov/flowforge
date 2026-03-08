@@ -8,16 +8,28 @@ import {
   updateChatflow,
 } from '../services/chatflowService.js'
 import { sendError } from '../utils/errors.js'
+import { type PaginationQuery, paginate } from '../utils/pagination.js'
 import { isValidUUID } from '../utils/validation.js'
 
 interface IdParams {
   id: string
 }
 
+interface ChatflowListQuery extends PaginationQuery {
+  type?: string | undefined
+}
+
 export function registerChatflowRoutes(app: FastifyInstance): void {
-  app.get('/api/v1/chatflows', async (_request: FastifyRequest, reply) => {
-    const chatflows = getAllChatflows()
-    return reply.code(200).send(chatflows)
+  app.get('/api/v1/chatflows', async (request: FastifyRequest<{ Querystring: ChatflowListQuery }>, reply) => {
+    let chatflows = getAllChatflows()
+    const query = request.query as ChatflowListQuery
+
+    // Filter by type (CHATFLOW or AGENTFLOW) if specified
+    if (query.type) {
+      chatflows = chatflows.filter((cf) => cf.type === query.type)
+    }
+
+    return reply.code(200).send(paginate(chatflows, query))
   })
 
   app.get('/api/v1/chatflows/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {

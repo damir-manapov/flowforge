@@ -10,6 +10,7 @@ import {
   updateDocumentStore,
 } from '../services/documentStoreService.js'
 import { sendError } from '../utils/errors.js'
+import { type PaginationQuery, paginate } from '../utils/pagination.js'
 import { isValidUUID } from '../utils/validation.js'
 
 interface IdParams {
@@ -34,9 +35,9 @@ export function registerDocumentStoreRoutes(app: FastifyInstance): void {
   // ── Document Store CRUD ────────────────────────────────────────────
   // Note: Flowise uses /stores (plural) for list, /store (singular) for CRUD
 
-  app.get('/api/v1/document-store/stores', async (_request: FastifyRequest, reply) => {
+  app.get('/api/v1/document-store/stores', async (request: FastifyRequest<{ Querystring: PaginationQuery }>, reply) => {
     const stores = getAllDocumentStores()
-    return reply.code(200).send(stores)
+    return reply.code(200).send(paginate(stores, request.query as PaginationQuery))
   })
 
   app.get('/api/v1/document-store/store/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {

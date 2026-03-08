@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { createApiKey, deleteApiKey, getAllApiKeys, updateApiKey } from '../services/apiKeyService.js'
 import { sendError } from '../utils/errors.js'
+import { type PaginationQuery, paginate } from '../utils/pagination.js'
 
 interface IdParams {
   id: string
@@ -14,9 +15,9 @@ interface ApiKeyBody {
 const HEX_ID_RE = /^[0-9a-f]{16,64}$/i
 
 export function registerApiKeyRoutes(app: FastifyInstance): void {
-  app.get('/api/v1/apikey', async (_request: FastifyRequest, reply) => {
+  app.get('/api/v1/apikey', async (request: FastifyRequest<{ Querystring: PaginationQuery }>, reply) => {
     const keys = getAllApiKeys()
-    return reply.code(200).send(keys)
+    return reply.code(200).send(paginate(keys, request.query as PaginationQuery))
   })
 
   app.post('/api/v1/apikey', async (request: FastifyRequest, reply) => {
