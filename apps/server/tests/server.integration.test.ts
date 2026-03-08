@@ -1,21 +1,35 @@
 import type { FastifyInstance } from 'fastify'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildServer } from '../src/server.js'
+import { clearAssistantStore } from '../src/storage/assistantStore.js'
+import { clearCredentialStore } from '../src/storage/credentialStore.js'
+import { clearDocumentStoreStore } from '../src/storage/documentStoreStore.js'
 import { clearStore } from '../src/storage/inMemoryStore.js'
+import { clearToolStore } from '../src/storage/toolStore.js'
+import { clearVariableStore } from '../src/storage/variableStore.js'
+
+function clearAllStores(): void {
+  clearStore()
+  clearToolStore()
+  clearVariableStore()
+  clearCredentialStore()
+  clearAssistantStore()
+  clearDocumentStoreStore()
+}
 
 describe('server integration (inject)', () => {
   let app: FastifyInstance
 
   beforeEach(async () => {
     vi.stubEnv('LOG_LEVEL', 'silent')
-    clearStore()
+    clearAllStores()
     app = await buildServer()
     await app.ready()
   })
 
   afterEach(async () => {
     await app.close()
-    clearStore()
+    clearAllStores()
     vi.unstubAllEnvs()
   })
 
@@ -535,6 +549,115 @@ describe('server integration (inject)', () => {
       })
       expect(res.statusCode).toBe(200)
       expect(JSON.parse(res.body)).toEqual({ hasChanged: false })
+    })
+  })
+
+  // ── Step 11: Assistant Sub-resources & Credential Filtering ────────
+  describe('assistant components', () => {
+    it('GET /assistants/components/chatmodels returns chat model list', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/assistants/components/chatmodels',
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body) as Array<{ label: string; name: string }>
+      expect(Array.isArray(body)).toBe(true)
+      expect(body.length).toBeGreaterThan(0)
+      // Should contain known chat models from the catalog
+      const names = body.map((m) => m.name)
+      expect(names).toContain('chatOpenAI')
+    })
+
+    it('GET /assistants/components/docstores returns document stores', async () => {
+      // Create a doc store first
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/document-store/store',
+        payload: { name: 'assistant-ds' },
+      })
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/assistants/components/docstores',
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body) as Array<{ name: string }>
+      expect(body.length).toBe(1)
+      expect(body[0]?.name).toBe('assistant-ds')
+    })
+
+    it('GET /assistants/components/tools returns tools', async () => {
+      // Create a tool first
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/tools',
+        payload: { name: 'assistant-tool', description: 'test', schema: '{}' },
+      })
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/assistants/components/tools',
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body) as Array<{ name: string }>
+      expect(body.length).toBe(1)
+      expect(body[0]?.name).toBe('assistant-tool')
+    })
+  })
+
+  describe('credential filtering', () => {
+    it('GET /credentials?credentialName filters by type', async () => {
+      // Create two credentials with different types
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/credentials',
+        payload: { name: 'deepseek-key', credentialName: 'deepseekApi', plainDataObj: { apiKey: 'sk-1' } },
+      })
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/credentials',
+        payload: { name: 'openai-key', credentialName: 'openAIApi', plainDataObj: { apiKey: 'sk-2' } },
+      })
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/credentials?credentialName=deepseekApi',
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body) as Array<{ credentialName: string }>
+      expect(body.length).toBe(1)
+      expect(body[0]?.credentialName).toBe('deepseekApi')
+    })
+
+    it('GET /credentials without filter returns all', async () => {
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/credentials',
+        payload: { name: 'cred-a', credentialName: 'typeA', plainDataObj: {} },
+      })
+      await app.inject({
+        method: 'POST',
+        url: '/api/v1/credentials',
+        payload: { name: 'cred-b', credentialName: 'typeB', plainDataObj: {} },
+      })
+
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/credentials',
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body) as Array<{ name: string }>
+      expect(body.length).toBe(2)
+    })
+  })
+
+  describe('credential icon', () => {
+    it('GET /components-credentials-icon/:name returns 404', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/components-credentials-icon/openAIApi',
+      })
+      expect(res.statusCode).toBe(404)
     })
   })
 })

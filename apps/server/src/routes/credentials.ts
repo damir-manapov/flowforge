@@ -53,10 +53,19 @@ function loadCredentialTypes(): CredentialType[] {
 export function registerCredentialRoutes(app: FastifyInstance): void {
   // ── Credentials CRUD ───────────────────────────────────────────────
 
-  app.get('/api/v1/credentials', async (_request: FastifyRequest, reply) => {
-    const credentials = getAllCredentials()
-    return reply.code(200).send(credentials)
-  })
+  app.get(
+    '/api/v1/credentials',
+    async (request: FastifyRequest<{ Querystring: { credentialName?: string } }>, reply) => {
+      let credentials = getAllCredentials()
+
+      const { credentialName } = request.query as { credentialName?: string }
+      if (credentialName) {
+        credentials = credentials.filter((c) => c.credentialName === credentialName)
+      }
+
+      return reply.code(200).send(credentials)
+    },
+  )
 
   app.get('/api/v1/credentials/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
     const { id } = request.params

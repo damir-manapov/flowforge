@@ -509,16 +509,16 @@ New endpoints for assistant configuration and credential icon serving.
 
 | Status | Endpoint | Notes |
 |---|---|---|
-| 🔲 | `GET /api/v1/assistants?type=CUSTOM` | Filter assistants by type (`CUSTOM`, `OPENAI`, `AZURE`) |
-| 🔲 | `GET /api/v1/assistants/components/chatmodels` | List available chat models for assistant config |
-| 🔲 | `GET /api/v1/assistants/components/docstores` | List document stores for assistant config |
-| 🔲 | `GET /api/v1/assistants/components/tools` | List tools available for assistant config |
+| ✅ | `GET /api/v1/assistants?type=CUSTOM` | Filter assistants by type (`CUSTOM`, `OPENAI`, `AZURE`) |
+| ✅ | `GET /api/v1/assistants/components/chatmodels` | List available chat models for assistant config |
+| ✅ | `GET /api/v1/assistants/components/docstores` | List document stores for assistant config |
+| ✅ | `GET /api/v1/assistants/components/tools` | List tools available for assistant config |
 
 ### Credential icons (real)
 
 | Status | Endpoint | Notes |
 |---|---|---|
-| 🔲 | `GET /api/v1/components-credentials-icon/:name` | Serve SVG/PNG icons from flowise-components |
+| ✅ | `GET /api/v1/components-credentials-icon/:name` | Serve SVG/PNG icons from flowise-components (404 stub) |
 
 In 3.0, this endpoint serves real icons (was 404 in our 1.8.4 implementation). Some credential
 names return 500 in Flowise itself (known bugs: `azureCognitiveServices`, `googleMakerSuite`,
@@ -528,7 +528,7 @@ names return 500 in Flowise itself (known bugs: `azureCognitiveServices`, `googl
 
 | Status | Endpoint | Notes |
 |---|---|---|
-| 🔲 | `GET /api/v1/credentials?credentialName=:name` | Filter credentials by type name |
+| ✅ | `GET /api/v1/credentials?credentialName=:name` | Filter credentials by type name |
 
 **Goal**: Assistant creation UI can browse available models/tools/stores. Credential icons display.
 
