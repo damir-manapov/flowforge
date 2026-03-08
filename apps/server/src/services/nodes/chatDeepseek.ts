@@ -5,6 +5,7 @@
  * uses @langchain/openai ChatOpenAI with baseURL 'https://api.deepseek.com'.
  */
 
+import type { BaseCache } from '@langchain/core/caches'
 import { ChatOpenAI } from '@langchain/openai'
 import type { NodeData } from '../nodeRegistry.js'
 
@@ -30,9 +31,6 @@ export async function initChatDeepseek(
     streaming,
     openAIApiKey: apiKey,
     apiKey,
-    configuration: {
-      baseURL,
-    },
   }
 
   if (inputs.maxTokens) config.maxTokens = Number(inputs.maxTokens)
@@ -40,10 +38,34 @@ export async function initChatDeepseek(
   if (inputs.frequencyPenalty) config.frequencyPenalty = Number(inputs.frequencyPenalty)
   if (inputs.presencePenalty) config.presencePenalty = Number(inputs.presencePenalty)
   if (inputs.timeout) config.timeout = Number(inputs.timeout)
+  if (inputs.cache) config.cache = inputs.cache as BaseCache
 
   if (inputs.stopSequence) {
     const stops = (inputs.stopSequence as string).split(',').map((s) => s.trim())
     config.stop = stops
+  }
+
+  // Parse baseOptions (JSON string or object) — matches original Flowise.
+  // The original disallows overriding baseURL via baseOptions.
+  let parsedBaseOptions: Record<string, unknown> | undefined
+  if (inputs.baseOptions) {
+    try {
+      parsedBaseOptions =
+        typeof inputs.baseOptions === 'object'
+          ? (inputs.baseOptions as Record<string, unknown>)
+          : (JSON.parse(inputs.baseOptions as string) as Record<string, unknown>)
+      if (parsedBaseOptions.baseURL) {
+        // Original Flowise: "The 'baseURL' parameter is not allowed when using the ChatDeepseek node."
+        delete parsedBaseOptions.baseURL
+      }
+    } catch (e) {
+      throw new Error(`Invalid JSON in the BaseOptions: ${e}`)
+    }
+  }
+
+  config.configuration = {
+    baseURL,
+    ...parsedBaseOptions,
   }
 
   return new ChatOpenAI(config)

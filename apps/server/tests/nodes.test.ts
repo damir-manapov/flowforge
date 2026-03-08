@@ -1,4 +1,4 @@
-import { AIMessage, HumanMessage } from '@langchain/core/messages'
+import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages'
 import { ChatOpenAI } from '@langchain/openai'
 import { describe, expect, it } from 'vitest'
 import type { NodeData } from '../src/services/nodeRegistry.js'
@@ -51,6 +51,69 @@ describe('chatDeepseek', () => {
       ...baseData,
       baseURL: 'https://custom.api.com',
     }
+    const model = await initChatDeepseek(data, { deepseekApiKey: 'sk-test' })
+    expect(model).toBeInstanceOf(ChatOpenAI)
+  })
+
+  it('parses baseOptions JSON string and merges into configuration', async () => {
+    const data: NodeData = {
+      ...baseData,
+      inputs: {
+        ...baseData.inputs,
+        baseOptions: JSON.stringify({ defaultHeaders: { 'X-Custom': 'test' } }),
+      },
+    }
+    const model = await initChatDeepseek(data, { deepseekApiKey: 'sk-test' })
+    expect(model).toBeInstanceOf(ChatOpenAI)
+  })
+
+  it('accepts baseOptions as object', async () => {
+    const data: NodeData = {
+      ...baseData,
+      inputs: {
+        ...baseData.inputs,
+        baseOptions: { defaultHeaders: { 'X-Custom': 'test' } },
+      },
+    }
+    const model = await initChatDeepseek(data, { deepseekApiKey: 'sk-test' })
+    expect(model).toBeInstanceOf(ChatOpenAI)
+  })
+
+  it('strips baseURL from baseOptions to prevent override', async () => {
+    const data: NodeData = {
+      ...baseData,
+      inputs: {
+        ...baseData.inputs,
+        baseOptions: JSON.stringify({ baseURL: 'https://evil.com', defaultHeaders: {} }),
+      },
+    }
+    // Should not throw — baseURL is silently removed
+    const model = await initChatDeepseek(data, { deepseekApiKey: 'sk-test' })
+    expect(model).toBeInstanceOf(ChatOpenAI)
+  })
+
+  it('throws on invalid baseOptions JSON', async () => {
+    const data: NodeData = {
+      ...baseData,
+      inputs: {
+        ...baseData.inputs,
+        baseOptions: 'not valid json',
+      },
+    }
+    await expect(initChatDeepseek(data, { deepseekApiKey: 'sk-test' })).rejects.toThrow(
+      'Invalid JSON in the BaseOptions',
+    )
+  })
+
+  it('ignores empty baseOptions string', async () => {
+    const data: NodeData = {
+      ...baseData,
+      inputs: {
+        ...baseData.inputs,
+        baseOptions: '',
+      },
+    }
+    // Empty string is falsy — should be ignored
     const model = await initChatDeepseek(data, { deepseekApiKey: 'sk-test' })
     expect(model).toBeInstanceOf(ChatOpenAI)
   })
@@ -222,5 +285,182 @@ describe('conversationChain', () => {
     })
 
     expect(chain).toHaveProperty('invoke')
+  })
+
+  it('invoke() returns model output as string', async () => {
+    clearAllSessions()
+    const mockModel = {
+      invoke: async () => ({ content: 'Hello world' }),
+      stream: async () => ({
+        [Symbol.asyncIterator]: async function* () {
+          yield { content: '' }
+        },
+      }),
+    }
+    const mem = await initBufferMemory({
+      name: 'bufferMemory',
+      type: 'BufferMemory',
+      label: 'Buffer Memory',
+      inputs: { memoryKey: 'chat_history', sessionId: 'invoke-test' },
+    })
+    const chain = await initConversationChain({
+      name: 'conversationChain',
+      type: 'ConversationChain',
+      label: 'Conversation Chain',
+      inputs: { model: mockModel, memory: mem },
+    })
+
+    const result = await chain.invoke('Hi')
+    expect(result).toBe('Hello world')
+  })
+
+  it('invoke() saves human and AI messages to memory', async () => {
+    clearAllSessions()
+    const mockModel = {
+      invoke: async () => ({ content: 'I am AI' }),
+      stream: async () => ({
+        [Symbol.asyncIterator]: async function* () {
+          yield { content: '' }
+        },
+      }),
+    }
+    const mem = await initBufferMemory({
+      name: 'bufferMemory',
+      type: 'BufferMemory',
+      label: 'Buffer Memory',
+      inputs: { memoryKey: 'chat_history', sessionId: 'mem-invoke-test' },
+    })
+    const chain = await initConversationChain({
+      name: 'conversationChain',
+      type: 'ConversationChain',
+      label: 'Conversation Chain',
+      inputs: { model: mockModel, memory: mem },
+    })
+
+    await chain.invoke('Hello')
+
+    const msgs = mem.getMessages()
+    expect(msgs).toHaveLength(2)
+    expect(msgs[0]).toBeInstanceOf(HumanMessage)
+    expect(msgs[0]?.content).toBe('Hello')
+    expect(msgs[1]).toBeInstanceOf(AIMessage)
+    expect(msgs[1]?.content).toBe('I am AI')
+  })
+
+  it('stream() yields text chunks and saves to memory', async () => {
+    clearAllSessions()
+    const mockModel = {
+      stream: async () => {
+        async function* gen() {
+          yield { content: 'chunk1' }
+          yield { content: 'chunk2' }
+        }
+        return {
+          [Symbol.asyncIterator]: gen,
+        }
+      },
+      invoke: async () => ({ content: '' }),
+    }
+    const mem = await initBufferMemory({
+      name: 'bufferMemory',
+      type: 'BufferMemory',
+      label: 'Buffer Memory',
+      inputs: { memoryKey: 'chat_history', sessionId: 'stream-test' },
+    })
+    const chain = await initConversationChain({
+      name: 'conversationChain',
+      type: 'ConversationChain',
+      label: 'Conversation Chain',
+      inputs: { model: mockModel, memory: mem },
+    })
+
+    const stream = await chain.stream('Tell me more')
+    const chunks: string[] = []
+    for await (const chunk of stream) {
+      chunks.push(chunk)
+    }
+
+    expect(chunks).toEqual(['chunk1', 'chunk2'])
+
+    // Memory should have human + AI messages
+    const msgs = mem.getMessages()
+    expect(msgs).toHaveLength(2)
+    expect(msgs[0]).toBeInstanceOf(HumanMessage)
+    expect(msgs[0]?.content).toBe('Tell me more')
+    expect(msgs[1]).toBeInstanceOf(AIMessage)
+    expect(msgs[1]?.content).toBe('chunk1chunk2')
+  })
+
+  it('passes system message and history to model', async () => {
+    clearAllSessions()
+    let capturedMessages: unknown[] = []
+    const mockModel = {
+      invoke: async (msgs: unknown[]) => {
+        capturedMessages = msgs
+        return { content: 'response' }
+      },
+      stream: async () => ({
+        [Symbol.asyncIterator]: async function* () {
+          yield { content: '' }
+        },
+      }),
+    }
+    const mem = await initBufferMemory({
+      name: 'bufferMemory',
+      type: 'BufferMemory',
+      label: 'Buffer Memory',
+      inputs: { memoryKey: 'chat_history', sessionId: 'sysmsg-test' },
+    })
+    // Pre-fill memory with history
+    mem.addMessage(new HumanMessage('prev question'))
+    mem.addMessage(new AIMessage('prev answer'))
+
+    const chain = await initConversationChain({
+      name: 'conversationChain',
+      type: 'ConversationChain',
+      label: 'Conversation Chain',
+      inputs: { model: mockModel, memory: mem, systemMessagePrompt: 'You are a pirate.' },
+    })
+
+    await chain.invoke('Ahoy')
+
+    // Should be: SystemMessage, HumanMessage(prev), AIMessage(prev), HumanMessage(Ahoy)
+    expect(capturedMessages).toHaveLength(4)
+    expect(capturedMessages[0]).toBeInstanceOf(SystemMessage)
+    expect((capturedMessages[0] as { content: string }).content).toBe('You are a pirate.')
+    expect(capturedMessages[1]).toBeInstanceOf(HumanMessage)
+    expect((capturedMessages[1] as { content: string }).content).toBe('prev question')
+    expect(capturedMessages[2]).toBeInstanceOf(AIMessage)
+    expect(capturedMessages[3]).toBeInstanceOf(HumanMessage)
+    expect((capturedMessages[3] as { content: string }).content).toBe('Ahoy')
+  })
+
+  it('uses default system message when none provided', async () => {
+    clearAllSessions()
+    let capturedMessages: unknown[] = []
+    const mockModel = {
+      invoke: async (msgs: unknown[]) => {
+        capturedMessages = msgs
+        return { content: 'ok' }
+      },
+      stream: async () => ({
+        [Symbol.asyncIterator]: async function* () {
+          yield { content: '' }
+        },
+      }),
+    }
+    const chain = await initConversationChain({
+      name: 'conversationChain',
+      type: 'ConversationChain',
+      label: 'Conversation Chain',
+      inputs: { model: mockModel },
+    })
+
+    await chain.invoke('test')
+
+    expect(capturedMessages[0]).toBeInstanceOf(SystemMessage)
+    expect((capturedMessages[0] as { content: string }).content).toContain(
+      'friendly conversation between a human and an AI',
+    )
   })
 })
