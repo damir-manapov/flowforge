@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { generateStubResponse, getStubTokenDelayMs, getStubTokens } from '../src/services/predictionService.js'
+import {
+  allNodesSupported,
+  generateStubResponse,
+  getStubTokenDelayMs,
+  getStubTokens,
+} from '../src/services/predictionService.js'
 import { UUID_RE } from './_helpers/fixtures.js'
 
 describe('predictionService', () => {
@@ -56,6 +61,39 @@ describe('predictionService', () => {
   describe('getStubTokenDelayMs', () => {
     it('returns a positive number', () => {
       expect(getStubTokenDelayMs()).toBeGreaterThan(0)
+    })
+  })
+
+  describe('allNodesSupported', () => {
+    it('returns true when all node types are registered', () => {
+      const flowData = JSON.stringify({
+        nodes: [
+          { data: { name: 'chatDeepseek' } },
+          { data: { name: 'bufferMemory' } },
+          { data: { name: 'conversationChain' } },
+        ],
+      })
+      expect(allNodesSupported(flowData)).toBe(true)
+    })
+
+    it('returns false when a node type is not registered', () => {
+      const flowData = JSON.stringify({
+        nodes: [{ data: { name: 'chatDeepseek' } }, { data: { name: 'unknownNode' } }],
+      })
+      expect(allNodesSupported(flowData)).toBe(false)
+    })
+
+    it('returns false for empty nodes', () => {
+      expect(allNodesSupported(JSON.stringify({ nodes: [] }))).toBe(false)
+    })
+
+    it('returns false for invalid JSON', () => {
+      expect(allNodesSupported('not-json')).toBe(false)
+    })
+
+    it('returns false when nodes have no name', () => {
+      const flowData = JSON.stringify({ nodes: [{ data: {} }] })
+      expect(allNodesSupported(flowData)).toBe(false)
     })
   })
 })

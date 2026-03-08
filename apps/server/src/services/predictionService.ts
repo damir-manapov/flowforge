@@ -4,6 +4,9 @@ import { endSSE, initSSE, startKeepAlive, writeSSE } from '../sse/sseWriter.js'
 import type { Chatflow } from '../storage/inMemoryStore.js'
 import { sleep } from '../utils/sleep.js'
 import { getCredentialById } from './credentialService.js'
+import { executeFlow } from './flowRunner.js'
+import { hasNode } from './nodeRegistry.js'
+import type { FlowChain } from './nodes/conversationChain.js'
 
 export interface PredictionResult {
   text: string
@@ -68,10 +71,78 @@ export async function streamError(reply: FastifyReply, message: string): Promise
   endSSE(reply)
 }
 
-/** Stream a stub prediction response via SSE. Owns the full SSE lifecycle.
+/** Check if all node types in a flowData JSON are supported by the registry. */
+export function allNodesSupported(flowDataJson: string): boolean {
+  try {
+    const fd = JSON.parse(flowDataJson) as { nodes?: Array<{ data?: { name?: string } }> }
+    if (!fd.nodes?.length) return false
+    return fd.nodes.every((n) => {
+      const name = n.data?.name
+      return typeof name === 'string' && hasNode(name)
+    })
+  } catch {
+    return false
+  }
+}
+
+/** Stream a real LLM prediction response via SSE.
+ *  Builds the flow graph, invokes the ending chain, and streams tokens.
+ */
+async function streamRealPrediction(reply: FastifyReply, question: string, chatflow: Chatflow): Promise<void> {
+  initSSE(reply)
+  const stopKeepAlive = startKeepAlive(reply)
+
+  try {
+    const { flow, instances } = await executeFlow(chatflow.flowData)
+    const chain = instances.get(flow.endingNode.id) as FlowChain
+
+    if (!chain?.stream) {
+      throw new Error('Ending node does not support streaming')
+    }
+
+    const chatId = randomUUID()
+    const chatMessageId = randomUUID()
+    const sessionId = randomUUID()
+
+    // 1. start
+    writeSSE(reply, 'start', '')
+
+    // 2. stream tokens from real LLM
+    const stream = await chain.stream(question)
+    for await (const token of stream) {
+      if (reply.raw.destroyed) break
+      if (token) writeSSE(reply, 'token', token)
+    }
+
+    if (!reply.raw.destroyed) {
+      // 3. metadata
+      writeSSE(
+        reply,
+        'metadata',
+        JSON.stringify({
+          chatId,
+          chatMessageId,
+          sessionId,
+          memoryType: null,
+        }),
+      )
+
+      // 4. end
+      writeSSE(reply, 'end', '[DONE]')
+    }
+  } finally {
+    stopKeepAlive()
+    endSSE(reply)
+  }
+}
+
+/** Stream a prediction response via SSE. Owns the full SSE lifecycle.
  *
  *  Flowise event sequence: start → token* → metadata → end
  *  If a credential referenced in the chatflow is missing: error → end
+ *
+ *  Uses real LLM flow execution when all node types are supported.
+ *  Falls back to stub tokens otherwise.
  */
 export async function streamPrediction(reply: FastifyReply, question: string, chatflow: Chatflow): Promise<void> {
   // Validate credentials before streaming
@@ -84,6 +155,18 @@ export async function streamPrediction(reply: FastifyReply, question: string, ch
     )
   }
 
+  // Try real flow execution if all nodes are supported
+  if (allNodesSupported(chatflow.flowData)) {
+    try {
+      return await streamRealPrediction(reply, question, chatflow)
+    } catch (err) {
+      // Fall through to stub on flow execution error
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[flowRunner] Real prediction failed, falling back to stub:', msg)
+    }
+  }
+
+  // Fallback: stub response
   initSSE(reply)
   const stopKeepAlive = startKeepAlive(reply)
 
