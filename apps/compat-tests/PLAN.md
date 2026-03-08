@@ -4,7 +4,7 @@ API endpoints discovered via mitmproxy traffic recording against Flowise UI.
 Steps 1–7 were built against Flowise 1.8.4. Steps 8–11 cover breaking changes
 and new functionality introduced in **Flowise 3.0** (captured from 3.0.13).
 
-**Scope**: ~65 endpoints across 11 steps. Steps 1–7 done (except Step 5). Steps 8–11 not started.
+**Scope**: ~65 endpoints across 12 steps. Steps 1–7 done (except Step 5). Step 5a in progress. Steps 8–11 not started.
 
 Each step follows the same cycle:
 
@@ -203,6 +203,97 @@ data:{"event":"end","data":"[DONE]"}
 ```
 
 Tests should cover this error-in-SSE case.
+
+---
+
+## Step 5a: Flow Execution — Real LLM Predictions
+
+Replace stub prediction responses with actual LLM execution. Walk the flowData graph,
+instantiate LangChain components, and run the chain. Start with the 3 node types in
+the Deepseek E2E fixture, then expand.
+
+### Why LangChain?
+
+Flowise's node system is built on LangChain. The ChatDeepseek node is literally
+`new ChatOpenAI({...})` from `@langchain/openai` with `baseURL: 'https://api.deepseek.com'`.
+ConversationChain and BufferMemory are also LangChain classes. Using raw `fetch()` would
+mean reimplementing memory, chains, agents, and retrieval from scratch — not practical
+for Flowise compatibility.
+
+### Dependencies to add
+
+| Package | Why |
+|---|---|
+| `@langchain/openai` | `ChatOpenAI` — what ChatDeepseek (and ChatOpenAI, Azure, etc.) use |
+| `@langchain/core` | Base types: messages, runnables, callbacks, streaming |
+| `langchain` | `ConversationChain`, `BufferMemory`, and other chain types |
+
+### Architecture
+
+```
+flowData JSON ──► flowRunner.ts ──► LangChain objects ──► streaming response
+                   │                                         │
+                   ├─ parse graph (nodes + edges)            ├─ SSE: start → token* → metadata → end
+                   ├─ topological sort                       └─ error → end (on failure)
+                   ├─ resolve credentials (decrypt)
+                   └─ instantiate LangChain components
+```
+
+### Node types to support (Phase 1 — Deepseek fixture)
+
+| Status | Node Type | LangChain Class | Notes |
+|---|---|---|---|
+| 🔲 | `chatDeepseek` | `ChatOpenAI` | `baseURL: 'https://api.deepseek.com'`, model from `inputs.modelName` |
+| 🔲 | `bufferMemory` | `BufferMemory` | Session-scoped conversation memory |
+| 🔲 | `conversationChain` | `ConversationChain` | Chains LLM + memory, runs `chain.call({ input })` |
+
+### Node types to support (Phase 2 — common chat models)
+
+| Status | Node Type | LangChain Class | Notes |
+|---|---|---|---|
+| 🔲 | `chatOpenAI` | `ChatOpenAI` | `baseURL: 'https://api.openai.com/v1'` |
+| 🔲 | `chatAnthropic` | `ChatAnthropic` | Requires `@langchain/anthropic` |
+| 🔲 | `llmChain` | `LLMChain` | Generic LLM chain with prompt template |
+| 🔲 | `promptTemplate` | `PromptTemplate` | User-defined prompt templates |
+
+### Implementation files
+
+| File | Purpose |
+|---|---|
+| `src/services/flowRunner.ts` | Parse flowData graph, topological sort, instantiate nodes |
+| `src/services/nodeRegistry.ts` | Map of `nodeType → init(nodeData, credential) → LangChain object` |
+| `src/services/nodes/chatDeepseek.ts` | Init function for ChatDeepseek |
+| `src/services/nodes/bufferMemory.ts` | Init function for BufferMemory |
+| `src/services/nodes/conversationChain.ts` | Init function for ConversationChain |
+
+### Flow execution pipeline
+
+1. Parse `flowData` JSON → extract `nodes[]` and `edges[]`
+2. Topological sort nodes by edges (upstream → downstream)
+3. For each node in order:
+   a. Resolve credential (if `node.data.credential` set) → decrypt API key
+   b. Call `nodeRegistry[node.data.type].init(nodeData, credentialData)` → LangChain object
+   c. Wire upstream outputs as inputs (via edge connections)
+4. Find the terminal node (the chain/agent) and call it with the user's question
+5. Stream tokens via LangChain callbacks → SSE events
+
+### Tests
+
+| Test | Level | What it validates |
+|---|---|---|
+| `flowRunner.test.ts` — graph parsing | Unit | `parseFlowData()` extracts nodes, edges, topological order |
+| `flowRunner.test.ts` — credential resolution | Unit | Node credential ID → decrypted API key |
+| `nodeRegistry.test.ts` — chatDeepseek | Unit | Correct `ChatOpenAI` config: model, temp, baseURL, apiKey |
+| `nodeRegistry.test.ts` — conversationChain | Unit | Chain wired with LLM + memory |
+| `streamPrediction.test.ts` — real model (mocked) | Unit | LangChain streaming → SSE events |
+| `02_e2e_prediction.test.ts` | E2E | Full pipeline with real Deepseek API (already exists) |
+
+### Stub fallback
+
+When flowData has no recognized model node (e.g., empty `{"nodes":[],"edges":[]}`),
+`streamPrediction` continues to return stub tokens. This keeps existing tests passing.
+
+**Goal**: `POST /api/v1/prediction/:id` with a Deepseek chatflow returns real LLM answers.
 
 ---
 
