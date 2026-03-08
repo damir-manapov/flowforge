@@ -210,21 +210,21 @@ describe('server integration (inject)', () => {
       })
       expect(res.statusCode).toBe(200)
 
-      const lines = res.body.split('\n')
-      const events = lines.filter((l: string) => l.startsWith('event: '))
-      const tokenEvents = events.filter((e: string) => e === 'event: token')
-      const endEvents = events.filter((e: string) => e === 'event: end')
+      // Flowise JSON-envelope format: data: {"event":"token","data":"Hello"}
+      const dataLines = res.body.split('\n').filter((l: string) => l.startsWith('data: '))
+      const parsed = dataLines.map((l: string) => JSON.parse(l.slice(6)))
+
+      const tokenEvents = parsed.filter((e: { event: string }) => e.event === 'token')
+      const endEvents = parsed.filter((e: { event: string }) => e.event === 'end')
 
       expect(tokenEvents.length).toBeGreaterThan(0)
       expect(endEvents).toHaveLength(1)
 
-      // Verify end event contains valid JSON payload
-      const endIdx = lines.findIndex((l: string) => l === 'event: end')
-      const endDataLine = lines[endIdx + 1]
-      expect(endDataLine).toBeDefined()
-      const endPayload = JSON.parse(endDataLine?.replace('data: ', '') ?? '')
-      expect(endPayload.question).toBe('Hello')
-      expect(endPayload.chatId).toBeDefined()
+      const metaEvents = parsed.filter((e: { event: string }) => e.event === 'metadata')
+      expect(metaEvents).toHaveLength(1)
+      const metaPayload = JSON.parse(metaEvents[0].data)
+      expect(metaPayload.chatId).toBeDefined()
+      expect(metaPayload.chatMessageId).toBeDefined()
     })
   })
 

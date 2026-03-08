@@ -1,8 +1,10 @@
 # FlowForge Implementation Plan
 
-API endpoints discovered via mitmproxy traffic recording against Flowise 1.8.4 UI.
+API endpoints discovered via mitmproxy traffic recording against Flowise UI.
+Steps 1–7 were built against Flowise 1.8.4. Steps 8–11 cover breaking changes
+and new functionality introduced in **Flowise 3.0** (captured from 3.0.13).
 
-**Scope**: ~45 endpoints across 7 steps. ~42 done, 3 remaining (Step 5).
+**Scope**: ~65 endpoints across 11 steps. Steps 1–7 done (except Step 5). Steps 8–11 not started.
 
 Each step follows the same cycle:
 
@@ -38,7 +40,7 @@ Return `[]` / static data for every boot-time endpoint. No persistence, no busin
 |---|---|---|
 | ✅ | `GET /api/v1/ping` | `"pong"` |
 | ✅ | `GET /api/v1/chatflows` | real impl |
-| � | `GET /api/v1/nodes` | static JSON (extracted from Flowise 1.8.4) |
+| 🚧 | `GET /api/v1/nodes` | static JSON (extracted from Flowise 1.8.4) |
 | 🚧 | `GET /api/v1/node-icon/:name` | 404 (icons not served yet) |
 | ✅ | `GET /api/v1/credentials` | Full CRUD (Step 3) |
 | ✅ | `GET /api/v1/components-credentials` | Static catalog (Step 3) |
@@ -64,7 +66,27 @@ Full persistence for chatflows — create, update, delete.
 | ✅ | `POST /api/v1/chatflows` | Already implemented |
 | ✅ | `PUT /api/v1/chatflows/:id` | Already implemented |
 | ✅ | `DELETE /api/v1/chatflows/:id` | Already implemented |
-| � | `GET /api/v1/chatflows-streaming/:id` | Stub: always returns `{ isStreaming: false }` |
+| 🚧 | `GET /api/v1/chatflows-streaming/:id` | Stub: always returns `{ isStreaming: false }` |
+| 🔲 | `GET /api/v1/chatflows-uploads/:id` | Upload config for chat panel (see below) |
+
+### chatflows-streaming (3.0 observation)
+
+In 3.0, `chatflows-streaming` returns real values derived from the flow: `{ isStreaming: true }`
+when a streaming-capable chain is present. Our stub always returns `false`.
+
+### chatflows-uploads (new in 3.0)
+
+```json
+{
+  "isSpeechToTextEnabled": false,
+  "isImageUploadAllowed": false,
+  "isRAGFileUploadAllowed": false,
+  "imgUploadSizeAndTypes": [],
+  "fileUploadSizeAndTypes": []
+}
+```
+
+Determines what the chat panel's input area shows (mic button, file attach button, etc.).
 
 **Goal**: Create, edit, save, delete flows via the UI.
 
@@ -156,12 +178,268 @@ Full CRUD for custom tools and assistants.
 
 ---
 
-## Prediction (already done)
+## Prediction & Chat (already done / partially done)
 
 | Status | Endpoint | Notes |
 |---|---|---|
-| ✅ | `POST /api/v1/prediction/:id` | JSON + SSE streaming |
+| ✅ | `POST /api/v1/prediction/:id` | JSON + SSE streaming (public/API-key access) |
 | ✅ | `POST /api/v1/attachments/:chatflowId/:chatId` | File uploads |
+| 🔲 | `POST /api/v1/internal-prediction/:id` | Same as prediction but for authenticated UI sessions |
+| 🔲 | `GET /api/v1/internal-chatmessage/:id?feedback=true` | Get chat history for a chatflow (UI chat panel) |
+
+### internal-prediction vs prediction
+
+Flowise 3.0 UI uses `internal-prediction` (not `prediction`) for the built-in chat panel.
+Both use SSE streaming with the same event format: `start` → `token`* → `metadata` → `end`.
+
+### SSE error events (missing credentials)
+
+When a chatflow has nodes without credentials configured, the prediction still returns
+HTTP 200 with `text/event-stream`, but sends an error event instead of tokens:
+
+```
+data:{"event":"error","data":"Missing credentials. Please pass an `apiKey`..."}
+data:{"event":"end","data":"[DONE]"}
+```
+
+Tests should cover this error-in-SSE case.
+
+---
+
+## Step 8: Authentication & User Management (Flowise 3.0)
+
+Flowise 3.0 requires authentication by default. All API calls return 401 without a valid
+session cookie. The auth flow is: register → login → cookie-based session.
+
+### Auth Flow
+
+| Status | Endpoint | Notes |
+|---|---|---|
+| 🔲 | `GET /api/v1/settings` | Returns `{ PLATFORM_TYPE: "open source" }` — public, no auth needed |
+| 🔲 | `GET /api/v1/account/basic-auth` | Returns `{ status: false }` — checks if basic-auth mode |
+| 🔲 | `POST /api/v1/auth/resolve` | Body `{}` → `{ redirectUrl }` — see resolve logic below |
+| 🔲 | `POST /api/v1/account/register` | Nested body (see shape below) → 201 user object |
+| 🔲 | `POST /api/v1/auth/login` | `{ email, password }` → user with roles/workspaces/permissions + set-cookie |
+| 🔲 | `POST /api/v1/account/logout` | Clears session → `{ message: "logged_out", redirectTo: "/login" }` |
+| 🔲 | `GET /api/v1/auth/permissions/:name` | Check feature permission (e.g., `API_KEY`) → `{ authorized: true }` |
+
+### User Profile
+
+| Status | Endpoint | Notes |
+|---|---|---|
+| 🔲 | `GET /api/v1/user?id=:id` | Get user profile: `{ id, name, email, status, createdDate, ... }` |
+| 🔲 | `PUT /api/v1/user` | Update profile `{ id, name, email }` or password `{ id, oldPassword, newPassword, confirmPassword }` |
+
+### Settings response shape
+
+```json
+{ "PLATFORM_TYPE": "open source" }
+```
+
+This endpoint is public (no auth required) and is the first thing the UI fetches.
+
+### auth/resolve logic
+
+- No user registered yet → `{ redirectUrl: "/organization-setup" }` (first-time setup)
+- Not logged in → `{ redirectUrl: "/signin" }`
+- Already logged in → `{ redirectUrl: "/chatflows" }`
+
+### Register request shape
+
+The register body wraps in a `user` object with `credential` instead of `password`:
+
+```json
+{
+  "user": {
+    "name": "Admin",
+    "email": "admin@gmail.com",
+    "type": "pro",
+    "credential": "Admin123_"
+  }
+}
+```
+
+Response (201):
+```json
+{
+  "user": {
+    "id": "uuid",
+    "name": "Admin",
+    "email": "admin@gmail.com",
+    "status": "active",
+    "createdBy": "uuid",
+    "updatedBy": "uuid",
+    "createdDate": "...",
+    "updatedDate": "..."
+  }
+}
+```
+
+### Login response shape
+
+```json
+{
+  "id": "uuid",
+  "email": "user@example.com",
+  "name": "User",
+  "roleId": "uuid",
+  "activeOrganizationId": "uuid",
+  "activeWorkspaceId": "uuid",
+  "activeWorkspace": "Default Workspace",
+  "assignedWorkspaces": [{ "id": "uuid", "name": "Default Workspace", "role": "owner", "organizationId": "uuid" }],
+  "permissions": ["organization", "workspace"],
+  "features": {},
+  "isSSO": false,
+  "isOrganizationAdmin": true
+}
+```
+
+### 401 Unauthorized behavior
+
+Without a valid session, all non-public endpoints return:
+```json
+{ "message": "Invalid or Missing token" }
+```
+With HTTP 401. Public endpoints: `GET /settings`, `POST /auth/resolve`, `POST /account/register`,
+`POST /auth/login`, `GET /account/basic-auth`.
+
+### Impact on compat tests
+
+All existing compat tests return 401 against Flowise 3.0. The test harness must:
+1. Register/login before running tests (or use a shared `beforeAll` setup)
+2. Forward the session cookie on every request
+
+**Goal**: Users can register, log in, manage profile. All subsequent API calls require auth.
+
+---
+
+## Step 9: Paginated List Responses (Flowise 3.0)
+
+Flowise 3.0 wraps all list endpoints in `{ data: [...], total: number }` instead of returning
+bare arrays. The UI sends `?page=1&limit=12` query parameters.
+
+### Affected endpoints
+
+| Status | Endpoint | 1.8.4 shape → 3.0 shape |
+|---|---|---|
+| 🔲 | `GET /api/v1/chatflows` | `[...]` → `{ data: [...], total }` |
+| 🔲 | `GET /api/v1/tools` | `[...]` → `{ data: [...], total }` |
+| 🔲 | `GET /api/v1/variables` | `[...]` → `{ data: [...], total }` |
+| 🔲 | `GET /api/v1/apikey` | `[...]` → `{ data: [...], total }` |
+| 🔲 | `GET /api/v1/document-store/store` | `[...]` → `{ data: [...], total }` |
+| 🔲 | `GET /api/v1/executions` | n/a → `{ data: [...], total }` (new) |
+| 🔲 | `GET /api/v1/assistants` | `[...]` → `{ data: [...], total }` |
+
+### Query parameters
+
+All list endpoints accept: `?page=1&limit=12`. Page is 1-indexed. Default limit appears to be 12.
+
+### Chatflow type filter
+
+Chatflows now have a `type` field: `CHATFLOW` or `AGENTFLOW`. The UI queries them separately:
+- `GET /api/v1/chatflows?type=CHATFLOW&page=1&limit=12` — chatflows tab
+- `GET /api/v1/chatflows?type=AGENTFLOW&page=1&limit=12` — agentflows tab
+
+### workspaceId field
+
+All entities now include a `workspaceId` field (UUID) linking them to the active workspace.
+This affects: chatflows, credentials, tools, variables, assistants, document-stores, apikeys.
+
+**Goal**: All list endpoints return paginated `{ data, total }` and support `?page=N&limit=N`.
+
+---
+
+## Step 10: Version, Settings & Export/Import (Flowise 3.0)
+
+New utility endpoints added in Flowise 3.0.
+
+| Status | Endpoint | Notes |
+|---|---|---|
+| 🔲 | `GET /api/v1/version` | `{ version: "3.0.13" }` |
+| 🔲 | `GET /api/v1/settings` | `{ PLATFORM_TYPE: "open source" }` (public, no auth) |
+| 🔲 | `POST /api/v1/export-import/export` | Body selects entity types → returns full JSON dump |
+| 🔲 | `POST /api/v1/export-import/import` | Imports a previously exported JSON dump |
+| 🔲 | `GET /api/v1/executions?page=1&limit=12` | List workflow executions (paginated) |
+| 🔲 | `GET /api/v1/marketplaces/custom` | Custom marketplace templates |
+| 🔲 | `GET /api/v1/chatflows/has-changed/:id` | Check if chatflow was modified (returns HTML fallback?) |
+
+### Export request body
+
+```json
+{
+  "agentflow": true,
+  "agentflowv2": true,
+  "assistantCustom": true,
+  "assistantOpenAI": true,
+  "assistantAzure": true,
+  "chatflow": true,
+  "chat_message": true,
+  "chat_feedback": true,
+  "custom_template": true,
+  "document_store": true,
+  "execution": true,
+  "tool": true,
+  "variable": true
+}
+```
+
+### Export response shape
+
+```json
+{
+  "FileDefaultName": "ExportData.json",
+  "AgentFlow": [],
+  "AgentFlowV2": [...],
+  "AssistantCustom": [...],
+  "AssistantFlow": [...],
+  "AssistantOpenAI": [],
+  "AssistantAzure": [],
+  "ChatFlow": [...],
+  "ChatMessage": [],
+  "ChatMessageFeedback": [],
+  "CustomTemplate": [],
+  "DocumentStore": [...],
+  "DocumentStoreFileChunk": [],
+  "Execution": [],
+  "Tool": [],
+  "Variable": [...]
+}
+```
+
+**Goal**: Version reporting, full data export/import, execution history.
+
+---
+
+## Step 11: Assistant Sub-resources & Credential Icons (Flowise 3.0)
+
+New endpoints for assistant configuration and credential icon serving.
+
+### Assistant component sub-resources
+
+| Status | Endpoint | Notes |
+|---|---|---|
+| 🔲 | `GET /api/v1/assistants?type=CUSTOM` | Filter assistants by type (`CUSTOM`, `OPENAI`, `AZURE`) |
+| 🔲 | `GET /api/v1/assistants/components/chatmodels` | List available chat models for assistant config |
+| 🔲 | `GET /api/v1/assistants/components/docstores` | List document stores for assistant config |
+| 🔲 | `GET /api/v1/assistants/components/tools` | List tools available for assistant config |
+
+### Credential icons (real)
+
+| Status | Endpoint | Notes |
+|---|---|---|
+| 🔲 | `GET /api/v1/components-credentials-icon/:name` | Serve SVG/PNG icons from flowise-components |
+
+In 3.0, this endpoint serves real icons (was 404 in our 1.8.4 implementation). Some credential
+names return 500 in Flowise itself (known bugs: `azureCognitiveServices`, `googleMakerSuite`,
+`httpBasicAuth`, `httpBearerToken`, etc.).
+
+### Credential filtering
+
+| Status | Endpoint | Notes |
+|---|---|---|
+| 🔲 | `GET /api/v1/credentials?credentialName=:name` | Filter credentials by type name |
+
+**Goal**: Assistant creation UI can browse available models/tools/stores. Credential icons display.
 
 ---
 
@@ -174,3 +452,33 @@ Extract from mitmproxy capture, serve as-is. Pin to Flowise 1.8.4 node catalog. 
 ### Credential encryption
 
 Flowise uses CryptoJS AES with `FLOWISE_SECRETKEY_OVERWRITE` env var (or auto-generated key). Our implementation matches this scheme for credential portability.
+
+### Flowise 3.0 migration strategy
+
+Steps 8–11 can be implemented in any order, but Step 8 (auth) should come first since all
+other endpoints depend on it. Recommended sequence:
+
+1. **Step 8** — Auth + session management (unblocks compat tests against Flowise 3.0)
+2. **Step 9** — Pagination wrappers (cross-cutting, touches all existing list handlers)
+3. **Step 10** — New utility endpoints (version, settings, export/import)
+4. **Step 11** — Assistant sub-resources + credential icons
+
+The pagination change (Step 9) is backward-incompatible: existing tests expect bare arrays.
+Options:
+- **v3-only**: Update all handlers and tests to the new shape
+- **Content negotiation**: Detect `?page=` param — if present, return `{ data, total }`;
+  if absent, return bare array for backward compat
+- **Version header**: `X-Flowise-Compat: 3` to opt in
+
+### mitmproxy captures
+
+- `session-20260308-084848.jsonl` — 254 requests from Flowise 3.0.13 UI session
+  - Covers: auth flow, chatflow CRUD, credential CRUD, assistant CRUD, variable CRUD, apikey CRUD,
+    document store CRUD, user profile update, password change, export/import, node icons
+- `session-20260308-090959.jsonl` — 713 requests from Flowise 3.0.13 (clean state, full E2E)
+  - Covers: register → login → create credential → create chatflow (Deepseek + ConversationChain +
+    BufferMemory) → prediction with missing creds (SSE error) → prediction with creds (SSE success)
+  - New endpoints observed: `internal-prediction`, `internal-chatmessage`, `chatflows-uploads`,
+    `chatflows/has-changed`
+  - Confirmed: 566 node-icon + 109 credential-icon requests (all 304 on repeat), 7 credential
+    icons return 500 (Flowise bugs)

@@ -43,7 +43,7 @@ export function registerPredictionRoutes(app: FastifyInstance): void {
     }
 
     if (body.streaming === true) {
-      await streamPrediction(reply, question)
+      await streamPrediction(reply, question, chatflow)
       return
     }
 

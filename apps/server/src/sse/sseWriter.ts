@@ -2,10 +2,18 @@ import type { FastifyReply } from 'fastify'
 
 const KEEPALIVE_INTERVAL_MS = 15_000
 
+/**
+ * Write a single SSE frame using the Flowise JSON-envelope format:
+ *
+ *   data: {"event":"token","data":"Hello"}
+ *
+ * Flowise does NOT use the standard SSE `event:` field — it wraps the
+ * event type inside the JSON `data:` payload.
+ */
 export function writeSSE(reply: FastifyReply, event: string, data: string): void {
   if (reply.raw.destroyed) return
-  const payload = `event: ${event}\ndata: ${data}\n\n`
-  reply.raw.write(payload)
+  const json = JSON.stringify({ event, data })
+  reply.raw.write(`data: ${json}\n\n`)
 }
 
 export function writeKeepAlive(reply: FastifyReply): void {

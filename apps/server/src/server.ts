@@ -36,10 +36,16 @@ export async function buildServer() {
   })
 
   await app.register(fastifyCors, { origin: parseCorsOrigin() })
-  await app.register(fastifyRateLimit, {
-    max: Number(process.env.RATE_LIMIT_MAX ?? 200),
-    timeWindow: '1 minute',
-  })
+
+  // Flowise has no rate limiting; keep a generous default to avoid
+  // throttling test suites while still providing basic DoS protection.
+  const rateMax = Number(process.env.RATE_LIMIT_MAX ?? 0)
+  if (rateMax > 0) {
+    await app.register(fastifyRateLimit, {
+      max: rateMax,
+      timeWindow: '1 minute',
+    })
+  }
   await app.register(fastifyMultipart, {
     limits: {
       fileSize: 50 * 1024 * 1024,

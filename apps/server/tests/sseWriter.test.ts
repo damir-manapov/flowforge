@@ -32,10 +32,10 @@ describe('sseWriter', () => {
   })
 
   describe('writeSSE', () => {
-    it('writes correctly formatted SSE payload', () => {
+    it('writes Flowise JSON-envelope SSE payload', () => {
       const reply = mockReply()
       writeSSE(reply, 'token', 'hello')
-      expect(reply.raw.write).toHaveBeenCalledWith('event: token\ndata: hello\n\n')
+      expect(reply.raw.write).toHaveBeenCalledWith('data: {"event":"token","data":"hello"}\n\n')
     })
 
     it('does not write if reply is destroyed', () => {

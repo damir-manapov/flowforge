@@ -23,3 +23,6 @@ export function shouldRecord(): boolean {
  * needs actual nodes + LLM API keys.
  */
 export const hasLLM: boolean = process.env.HAS_LLM === '1' || config.targetName === 'reimpl'
+
+/** Deepseek API key for E2E prediction tests. Skipped when absent. */
+export const deepseekApiKey: string | undefined = process.env.DEEPSEEK_API_KEY || undefined

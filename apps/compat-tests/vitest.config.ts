@@ -16,6 +16,7 @@ export default defineConfig({
       TARGET_NAME: process.env.TARGET_NAME ?? 'reimpl',
       RECORD_GOLDENS: process.env.RECORD_GOLDENS ?? '0',
       ...(process.env.HAS_LLM ? { HAS_LLM: process.env.HAS_LLM } : {}),
+      ...(process.env.DEEPSEEK_API_KEY ? { DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY } : {}),
     },
   },
 })

@@ -46,17 +46,30 @@ describe.skipIf(!hasLLM)('04 — Prediction SSE Streaming', () => {
 
     expect(result.events.length).toBeGreaterThan(0)
 
-    const tokenEvents = result.events.filter((e) => e.event === 'token')
+    // Flowise wraps event type inside a JSON data envelope:
+    //   data: {"event":"token","data":"Hello"}
+    const parsed = result.events.flatMap((e) => {
+      try {
+        return [JSON.parse(e.data) as { event: string; data: string }]
+      } catch {
+        return []
+      }
+    })
+
+    const tokenEvents = parsed.filter((e) => e.event === 'token')
     expect(tokenEvents.length).toBeGreaterThan(0)
 
-    const endEvents = result.events.filter((e) => e.event === 'end')
+    const startEvents = parsed.filter((e) => e.event === 'start')
+    expect(startEvents.length).toBe(1)
+
+    const endEvents = parsed.filter((e) => e.event === 'end')
     expect(endEvents.length).toBe(1)
 
     if (shouldRecord()) {
       recorder.record('prediction/stream-sse', {
         eventCount: result.events.length,
         tokenCount: tokenEvents.length,
-        events: result.events.map((e) => ({ event: e.event, dataLength: e.data.length })),
+        events: parsed.map((e) => ({ event: e.event, dataLength: e.data.length })),
       })
     }
   })
@@ -74,15 +87,27 @@ describe.skipIf(!hasLLM)('04 — Prediction SSE Streaming', () => {
       }),
     })
 
-    const endEvent = result.events.find((e) => e.event === 'end')
-    expect(endEvent).toBeDefined()
+    // Parse Flowise JSON envelope
+    const parsed = result.events.flatMap((e) => {
+      try {
+        return [JSON.parse(e.data) as { event: string; data: string }]
+      } catch {
+        return []
+      }
+    })
 
-    if (endEvent) {
-      const payload = JSON.parse(endEvent.data) as Record<string, unknown>
+    const metaEvent = parsed.find((e) => e.event === 'metadata')
+    expect(metaEvent).toBeDefined()
+
+    if (metaEvent) {
+      const payload = JSON.parse(metaEvent.data) as Record<string, unknown>
       expect(payload).toHaveProperty('chatId')
-      expect(payload).toHaveProperty('text')
-      expect(payload).toHaveProperty('question')
+      expect(payload).toHaveProperty('chatMessageId')
+      expect(payload).toHaveProperty('sessionId')
     }
+
+    const endEvent = parsed.find((e) => e.event === 'end')
+    expect(endEvent).toBeDefined()
   })
 
   it('SSE timing metadata is reasonable', async () => {
