@@ -67,7 +67,7 @@ Full persistence for chatflows — create, update, delete.
 | ✅ | `PUT /api/v1/chatflows/:id` | Already implemented |
 | ✅ | `DELETE /api/v1/chatflows/:id` | Already implemented |
 | 🚧 | `GET /api/v1/chatflows-streaming/:id` | Stub: always returns `{ isStreaming: false }` |
-| 🔲 | `GET /api/v1/chatflows-uploads/:id` | Upload config for chat panel (see below) |
+| � | `GET /api/v1/chatflows-uploads/:id` | Stub: upload config (see below) |
 
 ### chatflows-streaming (3.0 observation)
 
@@ -184,8 +184,8 @@ Full CRUD for custom tools and assistants.
 |---|---|---|
 | ✅ | `POST /api/v1/prediction/:id` | JSON + SSE streaming (public/API-key access) |
 | ✅ | `POST /api/v1/attachments/:chatflowId/:chatId` | File uploads |
-| 🔲 | `POST /api/v1/internal-prediction/:id` | Same as prediction but for authenticated UI sessions |
-| 🔲 | `GET /api/v1/internal-chatmessage/:id?feedback=true` | Get chat history for a chatflow (UI chat panel) |
+| � | `POST /api/v1/internal-prediction/:id` | Same handler as prediction (Flowise 3.0 UI) |
+| 🚧 | `GET /api/v1/internal-chatmessage/:id?feedback=true` | Stub: returns `[]` |
 
 ### internal-prediction vs prediction
 
@@ -243,9 +243,9 @@ flowData JSON ──► flowRunner.ts ──► LangChain objects ──► stre
 
 | Status | Node Type | LangChain Class | Notes |
 |---|---|---|---|
-| 🔲 | `chatDeepseek` | `ChatOpenAI` | `baseURL: 'https://api.deepseek.com'`, model from `inputs.modelName` |
-| 🔲 | `bufferMemory` | `BufferMemory` | Session-scoped conversation memory |
-| 🔲 | `conversationChain` | `ConversationChain` | Chains LLM + memory, runs `chain.call({ input })` |
+| ✅ | `chatDeepseek` | `ChatOpenAI` | `baseURL: 'https://api.deepseek.com'`, model from `inputs.modelName` |
+| ✅ | `bufferMemory` | `BufferMemory` | Session-scoped conversation memory |
+| ✅ | `conversationChain` | `ConversationChain` | Chains LLM + memory, runs `chain.call({ input })` |
 
 ### Node types to support (Phase 2 — common chat models)
 

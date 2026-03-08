@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { getChatflowById } from '../services/chatflowService.js'
 import { generateStubResponse, streamPrediction } from '../services/predictionService.js'
 import { sendError } from '../utils/errors.js'
@@ -16,7 +16,8 @@ interface PredictionBody {
 }
 
 export function registerPredictionRoutes(app: FastifyInstance): void {
-  app.post('/api/v1/prediction/:flowId', async (request: FastifyRequest<{ Params: PredictionParams }>, reply) => {
+  // Shared handler for both public and internal prediction endpoints
+  async function handlePrediction(request: FastifyRequest<{ Params: PredictionParams }>, reply: FastifyReply) {
     const { flowId } = request.params
 
     if (!isValidUUID(flowId)) {
@@ -54,5 +55,17 @@ export function registerPredictionRoutes(app: FastifyInstance): void {
 
     const result = generateStubResponse(question)
     return reply.code(200).send(result)
+  }
+
+  // Public prediction endpoint (API key access)
+  app.post('/api/v1/prediction/:flowId', handlePrediction)
+
+  // Internal prediction endpoint (authenticated UI sessions — Flowise 3.0)
+  app.post('/api/v1/internal-prediction/:flowId', handlePrediction)
+
+  // Chat message history for the UI chat panel
+  app.get('/api/v1/internal-chatmessage/:id', async (_request: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    // Stub: return empty array. Real implementation would query chat message store.
+    return reply.code(200).send([])
   })
 }

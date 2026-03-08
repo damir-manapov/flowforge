@@ -135,4 +135,33 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
     // Stub: return false. Real implementation would check if ending nodes support streaming.
     return reply.code(200).send({ isStreaming: false })
   })
+
+  // Upload config — determines what the chat panel's input area shows
+  // (mic button, file attach button, etc.)
+  app.get('/api/v1/chatflows-uploads/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
+    const { id } = request.params
+
+    if (!isValidUUID(id)) {
+      return sendError(reply, 400, `Invalid chatflow id format: ${id}`)
+    }
+
+    const chatflow = getChatflowById(id)
+
+    if (!chatflow) {
+      return sendError(
+        reply,
+        500,
+        `Error: chatflowsService.getChatflowById - Chatflow ${id} not found in the database!`,
+      )
+    }
+
+    // Stub: no upload support. Real implementation would inspect flow nodes.
+    return reply.code(200).send({
+      isSpeechToTextEnabled: false,
+      isImageUploadAllowed: false,
+      isRAGFileUploadAllowed: false,
+      imgUploadSizeAndTypes: [],
+      fileUploadSizeAndTypes: [],
+    })
+  })
 }

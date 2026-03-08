@@ -140,6 +140,39 @@ describe('server integration (inject)', () => {
     })
   })
 
+  describe('chatflows-uploads', () => {
+    it('returns upload config for existing chatflow', async () => {
+      const create = await app.inject({
+        method: 'POST',
+        url: '/api/v1/chatflows',
+        payload: { name: 'upload-test' },
+      })
+      const { id } = JSON.parse(create.body)
+
+      const res = await app.inject({ method: 'GET', url: `/api/v1/chatflows-uploads/${id}` })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body)
+      expect(body.isSpeechToTextEnabled).toBe(false)
+      expect(body.isImageUploadAllowed).toBe(false)
+      expect(body.isRAGFileUploadAllowed).toBe(false)
+      expect(body.imgUploadSizeAndTypes).toEqual([])
+      expect(body.fileUploadSizeAndTypes).toEqual([])
+    })
+
+    it('returns 400 for invalid UUID', async () => {
+      const res = await app.inject({ method: 'GET', url: '/api/v1/chatflows-uploads/bad-id' })
+      expect(res.statusCode).toBe(400)
+    })
+
+    it('returns 500 for non-existent chatflow', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/chatflows-uploads/00000000-0000-0000-0000-000000000000',
+      })
+      expect(res.statusCode).toBe(500)
+    })
+  })
+
   describe('prediction', () => {
     it('returns 400 for invalid flowId', async () => {
       const res = await app.inject({
@@ -257,6 +290,93 @@ describe('server integration (inject)', () => {
         headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
       })
       expect(res.statusCode).toBe(400)
+    })
+  })
+
+  describe('internal-prediction', () => {
+    it('returns stub response (same as public prediction)', async () => {
+      const create = await app.inject({
+        method: 'POST',
+        url: '/api/v1/chatflows',
+        payload: { name: 'internal-pred-test' },
+      })
+      const { id } = JSON.parse(create.body)
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/v1/internal-prediction/${id}`,
+        payload: { question: 'Hello', streaming: false },
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body)
+      expect(body.text).toBe('This is a stub response from FlowForge.')
+      expect(body.question).toBe('Hello')
+    })
+
+    it('returns SSE stream for streaming', async () => {
+      vi.stubEnv('STUB_TOKEN_DELAY_MS', '0')
+      const create = await app.inject({
+        method: 'POST',
+        url: '/api/v1/chatflows',
+        payload: { name: 'internal-stream-test' },
+      })
+      const { id } = JSON.parse(create.body)
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/v1/internal-prediction/${id}`,
+        payload: { question: 'Hello', streaming: true },
+      })
+      expect(res.statusCode).toBe(200)
+      const dataLines = res.body.split('\n').filter((l: string) => l.startsWith('data: '))
+      const parsed = dataLines.map((l: string) => JSON.parse(l.slice(6)))
+      const tokenEvents = parsed.filter((e: { event: string }) => e.event === 'token')
+      expect(tokenEvents.length).toBeGreaterThan(0)
+    })
+
+    it('returns 400 for invalid flowId', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/internal-prediction/not-a-uuid',
+        payload: { question: 'Hi' },
+      })
+      expect(res.statusCode).toBe(400)
+    })
+
+    it('returns 500 for non-existent chatflow', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/internal-prediction/00000000-0000-0000-0000-000000000000',
+        payload: { question: 'Hi' },
+      })
+      expect(res.statusCode).toBe(500)
+    })
+  })
+
+  describe('internal-chatmessage', () => {
+    it('returns empty array for any chatflow', async () => {
+      const create = await app.inject({
+        method: 'POST',
+        url: '/api/v1/chatflows',
+        payload: { name: 'chatmsg-test' },
+      })
+      const { id } = JSON.parse(create.body)
+
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/v1/internal-chatmessage/${id}`,
+      })
+      expect(res.statusCode).toBe(200)
+      expect(JSON.parse(res.body)).toEqual([])
+    })
+
+    it('returns empty array even for unknown id', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/internal-chatmessage/00000000-0000-0000-0000-000000000000',
+      })
+      expect(res.statusCode).toBe(200)
+      expect(JSON.parse(res.body)).toEqual([])
     })
   })
 })
