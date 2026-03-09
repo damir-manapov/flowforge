@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { getAllAssistants } from '../storage/assistantStore.js'
+import { addCustomTemplate, deleteCustomTemplate, getCustomTemplates } from '../storage/customTemplateStore.js'
 import { getAllDocumentStores } from '../storage/documentStoreStore.js'
 import { getAllChatflows } from '../storage/inMemoryStore.js'
 import { getAllTools } from '../storage/toolStore.js'
@@ -85,9 +86,39 @@ export function registerExportImportRoutes(app: FastifyInstance): void {
   })
 
   // ── Custom marketplace ─────────────────────────────────────────────
+
   app.get('/api/v1/marketplaces/custom', async (_request, reply) => {
-    // Stub: no custom templates
-    return reply.code(200).send([])
+    return reply.code(200).send(getCustomTemplates())
+  })
+
+  app.post('/api/v1/marketplaces/custom', async (request: FastifyRequest<{ Body: Record<string, unknown> }>, reply) => {
+    const { body } = request
+    if (!body || typeof body !== 'object') {
+      return reply.code(400).send({ message: 'Request body is required' })
+    }
+    const name =
+      typeof body.name === 'string' ? body.name : typeof body.templateName === 'string' ? body.templateName : ''
+    if (!name) {
+      return reply.code(400).send({ message: 'Template name is required' })
+    }
+    const template = addCustomTemplate({
+      templateName: name,
+      flowData: typeof body.flowData === 'string' ? body.flowData : JSON.stringify(body.flowData ?? {}),
+      description: typeof body.description === 'string' ? body.description : name,
+      framework: Array.isArray(body.framework) ? (body.framework as string[]) : [],
+      usecases: Array.isArray(body.usecases) ? (body.usecases as string[]) : [],
+      type: typeof body.type === 'string' ? body.type : 'Chatflow',
+    })
+    return reply.code(201).send(template)
+  })
+
+  app.delete('/api/v1/marketplaces/custom/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
+    const { id } = request.params
+    const deleted = deleteCustomTemplate(id)
+    if (!deleted) {
+      return reply.code(404).send({ message: `Custom template ${id} not found` })
+    }
+    return reply.code(200).send({ message: 'Deleted' })
   })
 
   // ── Chatflow has-changed ───────────────────────────────────────────
