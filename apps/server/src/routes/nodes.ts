@@ -2,13 +2,13 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
+import { resolveFirstLoadMethod, resolveLoadMethod } from '../services/nodeLoadMethods.js'
 
 // data/nodes.json lives at apps/server/data/nodes.json (outside src/)
 // In dev: __dirname = apps/server/src/routes → ../../data
 // In prod: __dirname = apps/server/dist/routes → ../../data
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const nodesPath = resolve(__dirname, '..', '..', 'data', 'nodes.json')
-const loadMethodsPath = resolve(__dirname, '..', '..', 'data', 'node-load-methods.json')
 
 let nodesCache: unknown[] | undefined
 
@@ -18,16 +18,6 @@ function loadNodes(): unknown[] {
     nodesCache = JSON.parse(raw) as unknown[]
   }
   return nodesCache
-}
-
-let loadMethodsCache: Record<string, unknown[]> | undefined
-
-function loadMethodsData(): Record<string, unknown[]> {
-  if (!loadMethodsCache) {
-    const raw = readFileSync(loadMethodsPath, 'utf-8')
-    loadMethodsCache = JSON.parse(raw) as Record<string, unknown[]>
-  }
-  return loadMethodsCache
 }
 
 interface IconParams {
@@ -55,35 +45,31 @@ export function registerNodeRoutes(app: FastifyInstance): void {
     return reply.code(200).type('image/svg+xml').send(svg)
   })
 
-  // Serves pre-captured load-method results (model lists, region lists, etc.)
-  // keyed by "{nodeName}/{methodName}" in data/node-load-methods.json.
-  // Dynamic methods that depend on user context (listFlows, listStores, etc.)
-  // return empty arrays when no data is available.
+  // Node load methods — resolves model lists, region lists, etc. via the
+  // modelLoader service and nodeLoadMethods registry, mirroring how each
+  // Flowise node class defines its own loadMethods.
   app.post(
     '/api/v1/node-load-method/:name',
     async (request: FastifyRequest<{ Params: IconParams; Body: { loadMethod?: string } }>, reply) => {
       const { name } = request.params
       const loadMethod = (request.body as { loadMethod?: string } | undefined)?.loadMethod
-      const methods = loadMethodsData()
+      const nodesData = loadNodes()
 
-      // Try exact match: nodeName/methodName
+      // Try exact match: nodeName + methodName
       if (loadMethod) {
-        const key = `${name}/${loadMethod}`
-        const result = methods[key]
-        if (result) {
-          return reply.code(200).send(result)
+        const method = resolveLoadMethod(name, loadMethod)
+        if (method) {
+          return reply.code(200).send(method(nodesData))
         }
       }
 
-      // Fallback: find any entry for this node
-      const prefix = `${name}/`
-      for (const [key, value] of Object.entries(methods)) {
-        if (key.startsWith(prefix)) {
-          return reply.code(200).send(value)
-        }
+      // Fallback: first registered method for this node
+      const fallback = resolveFirstLoadMethod(name)
+      if (fallback) {
+        return reply.code(200).send(fallback(nodesData))
       }
 
-      // No data at all — return empty array
+      // No registry entry at all — return empty array
       return reply.code(200).send([])
     },
   )
