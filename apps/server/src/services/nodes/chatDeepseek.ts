@@ -7,7 +7,7 @@
 
 import type { BaseCache } from '@langchain/core/caches'
 import { ChatOpenAI } from '@langchain/openai'
-import type { NodeData } from '../nodeRegistry.js'
+import type { NodeData } from '../../types/node.js'
 
 export async function initChatDeepseek(
   nodeData: NodeData,

@@ -9,7 +9,7 @@
  */
 
 import type { BaseMessage } from '@langchain/core/messages'
-import type { NodeData } from '../nodeRegistry.js'
+import type { NodeData } from '../../types/node.js'
 
 export interface FlowMemory {
   memoryKey: string

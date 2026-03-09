@@ -1,24 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
-import { resolveFirstLoadMethod, resolveLoadMethod } from '../services/nodeLoadMethods.js'
-
-// data/nodes.json lives at apps/server/data/nodes.json (outside src/)
-// In dev: __dirname = apps/server/src/routes → ../../data
-// In prod: __dirname = apps/server/dist/routes → ../../data
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const nodesPath = resolve(__dirname, '..', '..', 'data', 'nodes.json')
-
-let nodesCache: unknown[] | undefined
-
-function loadNodes(): unknown[] {
-  if (!nodesCache) {
-    const raw = readFileSync(nodesPath, 'utf-8')
-    nodesCache = JSON.parse(raw) as unknown[]
-  }
-  return nodesCache
-}
+import { getAllNodes, getNode, resolveFirstLoadMethod, resolveLoadMethod } from '../services/nodesPool.js'
 
 interface IconParams {
   name: string
@@ -26,13 +7,12 @@ interface IconParams {
 
 export function registerNodeRoutes(app: FastifyInstance): void {
   app.get('/api/v1/nodes', async (_request: FastifyRequest, reply) => {
-    const nodes = loadNodes()
+    const nodes = getAllNodes()
     return reply.code(200).send(nodes)
   })
 
   app.get('/api/v1/node-icon/:name', async (request: FastifyRequest<{ Params: IconParams }>, reply) => {
-    const nodes = loadNodes() as Array<{ name: string; icon?: string }>
-    const node = nodes.find((n) => n.name === request.params.name)
+    const node = getNode(request.params.name)
     if (!node?.icon) {
       return reply
         .code(404)
@@ -46,14 +26,13 @@ export function registerNodeRoutes(app: FastifyInstance): void {
   })
 
   // Node load methods — resolves model lists, region lists, etc. via the
-  // modelLoader service and nodeLoadMethods registry, mirroring how each
-  // Flowise node class defines its own loadMethods.
+  // NodesPool, mirroring how each Flowise node class defines its own loadMethods.
   app.post(
     '/api/v1/node-load-method/:name',
     async (request: FastifyRequest<{ Params: IconParams; Body: { loadMethod?: string } }>, reply) => {
       const { name } = request.params
       const loadMethod = (request.body as { loadMethod?: string } | undefined)?.loadMethod
-      const nodesData = loadNodes()
+      const nodesData = getAllNodes()
 
       // Try exact match: nodeName + methodName
       if (loadMethod) {

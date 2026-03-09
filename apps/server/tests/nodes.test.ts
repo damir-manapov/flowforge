@@ -1,10 +1,10 @@
 import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages'
 import { ChatOpenAI } from '@langchain/openai'
 import { describe, expect, it } from 'vitest'
-import type { NodeData } from '../src/services/nodeRegistry.js'
 import { clearAllSessions, initBufferMemory } from '../src/services/nodes/bufferMemory.js'
 import { initChatDeepseek } from '../src/services/nodes/chatDeepseek.js'
 import { initConversationChain } from '../src/services/nodes/conversationChain.js'
+import type { NodeData } from '../src/types/node.js'
 
 // ── ChatDeepseek ─────────────────────────────────────────────────────
 

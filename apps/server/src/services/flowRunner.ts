@@ -8,7 +8,7 @@
 
 import { decryptCredentialData } from '../utils/encryption.js'
 import { getCredentialById } from './credentialService.js'
-import { initNode } from './nodeRegistry.js'
+import { initNode } from './nodesPool.js'
 
 // ── Types ────────────────────────────────────────────────────────────
 

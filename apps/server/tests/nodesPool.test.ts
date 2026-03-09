@@ -1,25 +1,25 @@
 import { describe, expect, it } from 'vitest'
-import { getRegisteredNodes, hasNode, initNode } from '../src/services/nodeRegistry.js'
+import { getExecutableNodes, hasNodeInit, initNode } from '../src/services/nodesPool.js'
 
-describe('nodeRegistry', () => {
+describe('nodesPool', () => {
   it('has chatDeepseek registered', () => {
-    expect(hasNode('chatDeepseek')).toBe(true)
+    expect(hasNodeInit('chatDeepseek')).toBe(true)
   })
 
   it('has bufferMemory registered', () => {
-    expect(hasNode('bufferMemory')).toBe(true)
+    expect(hasNodeInit('bufferMemory')).toBe(true)
   })
 
   it('has conversationChain registered', () => {
-    expect(hasNode('conversationChain')).toBe(true)
+    expect(hasNodeInit('conversationChain')).toBe(true)
   })
 
   it('returns false for unregistered nodes', () => {
-    expect(hasNode('doesNotExist')).toBe(false)
+    expect(hasNodeInit('doesNotExist')).toBe(false)
   })
 
-  it('getRegisteredNodes returns at least the 3 core types', () => {
-    const names = getRegisteredNodes()
+  it('getExecutableNodes returns at least the 3 core types', () => {
+    const names = getExecutableNodes()
     expect(names).toContain('chatDeepseek')
     expect(names).toContain('bufferMemory')
     expect(names).toContain('conversationChain')

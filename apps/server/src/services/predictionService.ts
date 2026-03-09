@@ -5,8 +5,8 @@ import type { Chatflow } from '../storage/inMemoryStore.js'
 import { sleep } from '../utils/sleep.js'
 import { getCredentialById } from './credentialService.js'
 import { executeFlow } from './flowRunner.js'
-import { hasNode } from './nodeRegistry.js'
 import type { FlowChain } from './nodes/conversationChain.js'
+import { hasNodeInit } from './nodesPool.js'
 
 export interface PredictionResult {
   text: string
@@ -85,7 +85,7 @@ export function allNodesSupported(flowDataJson: string): boolean {
     if (!fd.nodes?.length) return false
     return fd.nodes.every((n) => {
       const name = n.data?.name
-      return typeof name === 'string' && hasNode(name)
+      return typeof name === 'string' && hasNodeInit(name)
     })
   } catch {
     console.warn('[predictionService] Malformed flowData JSON, cannot check node support')

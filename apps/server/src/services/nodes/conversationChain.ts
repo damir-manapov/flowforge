@@ -9,7 +9,7 @@
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { type BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages'
 import type { IterableReadableStream } from '@langchain/core/utils/stream'
-import type { NodeData } from '../nodeRegistry.js'
+import type { NodeData } from '../../types/node.js'
 import type { FlowMemory } from './bufferMemory.js'
 
 const DEFAULT_SYSTEM_MESSAGE =
