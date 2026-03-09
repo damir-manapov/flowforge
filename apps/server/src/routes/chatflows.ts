@@ -7,6 +7,7 @@ import {
   getChatflowById,
   updateChatflow,
 } from '../services/chatflowService.js'
+import { validateFlow } from '../services/flowValidation.js'
 import { sendError } from '../utils/errors.js'
 import { type PaginationQuery, paginate } from '../utils/pagination.js'
 import { isValidUUID } from '../utils/validation.js'
@@ -178,5 +179,31 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
       imgUploadSizeAndTypes: [],
       fileUploadSizeAndTypes: [],
     })
+  })
+
+  // Flow validation — pre-execution check for connectivity, inputs, credentials
+  app.post('/api/v1/chatflows/validate/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
+    const { id } = request.params
+
+    if (!isValidUUID(id)) {
+      return sendError(reply, 400, `Invalid chatflow id format: ${id}`)
+    }
+
+    const chatflow = getChatflowById(id)
+
+    if (!chatflow) {
+      return sendError(
+        reply,
+        404,
+        `Error: chatflowsService.getChatflowById - Chatflow ${id} not found in the database!`,
+      )
+    }
+
+    if (!chatflow.flowData) {
+      return reply.code(200).send({ valid: false, issues: [{ nodeId: '', nodeLabel: '', issues: ['No flowData'] }] })
+    }
+
+    const issues = validateFlow(chatflow.flowData)
+    return reply.code(200).send({ valid: issues.length === 0, issues })
   })
 }
