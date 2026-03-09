@@ -71,6 +71,33 @@ describe('10 — Boot Endpoints', () => {
     })
   })
 
+  describe('POST /node-load-method/:name', () => {
+    it('returns 200 with an array for chatDeepseek/listModels', async () => {
+      const res = await client.post('/node-load-method/chatDeepseek', { loadMethod: 'listModels' })
+      log.info('node-load-method response', { status: res.status })
+
+      expect(res.status).toBe(200)
+      const body = res.json<Array<{ label: string; name: string }>>()
+      expect(Array.isArray(body)).toBe(true)
+      expect(body.length).toBeGreaterThan(0)
+      expect(body.some((m) => m.name === 'deepseek-chat')).toBe(true)
+    })
+
+    it('returns 200 with an array for chatOpenAI/listModels', async () => {
+      const res = await client.post('/node-load-method/chatOpenAI', { loadMethod: 'listModels' })
+      expect(res.status).toBe(200)
+      const body = res.json<unknown[]>()
+      expect(Array.isArray(body)).toBe(true)
+      expect(body.length).toBeGreaterThan(0)
+    })
+
+    it('returns 200 or 500 for unknown node', async () => {
+      const res = await client.post('/node-load-method/unknownNode123', { loadMethod: 'listModels' })
+      // Flowise returns 500 (InternalFlowiseError), reimpl returns 200 with []
+      expect([200, 500]).toContain(res.status)
+    })
+  })
+
   describe.each([
     { path: '/credentials', label: 'credentials' },
     { path: '/components-credentials', label: 'components-credentials' },

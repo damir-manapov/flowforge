@@ -734,4 +734,39 @@ describe('server integration (inject)', () => {
       expect(res.statusCode).toBe(404)
     })
   })
+
+  describe('node-load-method', () => {
+    it('POST /node-load-method/:name returns model list for chatDeepseek', async () => {
+      const res = await authed({
+        method: 'POST',
+        url: '/api/v1/node-load-method/chatDeepseek',
+        payload: { loadMethod: 'listModels' },
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body) as Array<{ label: string; name: string }>
+      expect(body.length).toBeGreaterThan(0)
+      expect(body.some((m) => m.name === 'deepseek-chat')).toBe(true)
+    })
+
+    it('POST /node-load-method/:name returns empty array for unknown node', async () => {
+      const res = await authed({
+        method: 'POST',
+        url: '/api/v1/node-load-method/unknownNode',
+        payload: { loadMethod: 'listModels' },
+      })
+      expect(res.statusCode).toBe(200)
+      expect(JSON.parse(res.body)).toEqual([])
+    })
+
+    it('POST /node-load-method/:name falls back to first method when loadMethod omitted', async () => {
+      const res = await authed({
+        method: 'POST',
+        url: '/api/v1/node-load-method/chatOpenAI',
+        payload: {},
+      })
+      expect(res.statusCode).toBe(200)
+      const body = JSON.parse(res.body) as unknown[]
+      expect(body.length).toBeGreaterThan(0)
+    })
+  })
 })
