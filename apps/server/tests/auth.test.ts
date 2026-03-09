@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildServer } from '../src/server.js'
 import { clearAllSessions, clearUserStore, hashPassword, verifyPassword } from '../src/services/authService.js'
 import { clearStore } from '../src/storage/inMemoryStore.js'
+import { registerAndLogin } from './_helpers/auth.js'
 
 describe('auth service — password hashing', () => {
   it('hashes and verifies a password', () => {
@@ -21,6 +22,7 @@ describe('auth service — password hashing', () => {
 
 describe('auth routes (inject)', () => {
   let app: FastifyInstance
+  let cookie: string
 
   beforeEach(async () => {
     vi.stubEnv('LOG_LEVEL', 'silent')
@@ -29,6 +31,7 @@ describe('auth routes (inject)', () => {
     clearAllSessions()
     app = await buildServer()
     await app.ready()
+    cookie = await registerAndLogin(app)
   })
 
   afterEach(async () => {
@@ -63,7 +66,7 @@ describe('auth routes (inject)', () => {
 
   describe('GET /version', () => {
     it('returns version string', async () => {
-      const res = await app.inject({ method: 'GET', url: '/api/v1/version' })
+      const res = await app.inject({ method: 'GET', url: '/api/v1/version', headers: { cookie } })
       expect(res.statusCode).toBe(200)
       const body = JSON.parse(res.body)
       expect(body.version).toBeTypeOf('string')
@@ -74,6 +77,9 @@ describe('auth routes (inject)', () => {
 
   describe('POST /auth/resolve', () => {
     it('returns organization-setup when no users exist', async () => {
+      // Clear the admin user created by registerAndLogin
+      clearUserStore()
+      clearAllSessions()
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/resolve',
@@ -134,12 +140,12 @@ describe('auth routes (inject)', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/account/register',
-        payload: { user: { name: 'Admin', email: 'admin@test.com', credential: 'Pass123_' } },
+        payload: { user: { name: 'Admin2', email: 'admin2@test.com', credential: 'Pass123_' } },
       })
       expect(res.statusCode).toBe(201)
       const body = JSON.parse(res.body)
-      expect(body.user.name).toBe('Admin')
-      expect(body.user.email).toBe('admin@test.com')
+      expect(body.user.name).toBe('Admin2')
+      expect(body.user.email).toBe('admin2@test.com')
       expect(body.user.status).toBe('active')
       expect(body.user.id).toBeTypeOf('string')
       // Should NOT include password hash
@@ -246,14 +252,15 @@ describe('auth routes (inject)', () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/account/logout',
+        headers: { cookie },
       })
       expect(res.statusCode).toBe(200)
       const body = JSON.parse(res.body)
       expect(body.message).toBe('logged_out')
       expect(body.redirectTo).toBe('/login')
 
-      const cookie = res.headers['set-cookie'] as string
-      expect(cookie).toContain('Max-Age=0')
+      const setCookie = res.headers['set-cookie'] as string
+      expect(setCookie).toContain('Max-Age=0')
     })
   })
 
@@ -264,6 +271,7 @@ describe('auth routes (inject)', () => {
       const res = await app.inject({
         method: 'GET',
         url: '/api/v1/auth/permissions/API_KEY',
+        headers: { cookie },
       })
       expect(res.statusCode).toBe(200)
       expect(JSON.parse(res.body)).toEqual({ authorized: true })
@@ -284,6 +292,7 @@ describe('auth routes (inject)', () => {
       const res = await app.inject({
         method: 'GET',
         url: `/api/v1/user?id=${user.id}`,
+        headers: { cookie },
       })
       expect(res.statusCode).toBe(200)
       const body = JSON.parse(res.body)
@@ -294,7 +303,7 @@ describe('auth routes (inject)', () => {
     })
 
     it('returns 400 when id is missing', async () => {
-      const res = await app.inject({ method: 'GET', url: '/api/v1/user' })
+      const res = await app.inject({ method: 'GET', url: '/api/v1/user', headers: { cookie } })
       expect(res.statusCode).toBe(400)
     })
 
@@ -302,6 +311,7 @@ describe('auth routes (inject)', () => {
       const res = await app.inject({
         method: 'GET',
         url: '/api/v1/user?id=00000000-0000-0000-0000-000000000000',
+        headers: { cookie },
       })
       expect(res.statusCode).toBe(404)
     })
@@ -326,6 +336,7 @@ describe('auth routes (inject)', () => {
         method: 'PUT',
         url: '/api/v1/user',
         payload: { id: userId, name: 'New Name', email: 'new@test.com' },
+        headers: { cookie },
       })
       expect(res.statusCode).toBe(200)
       const body = JSON.parse(res.body)
@@ -343,6 +354,7 @@ describe('auth routes (inject)', () => {
           newPassword: 'NewPass456_',
           confirmPassword: 'NewPass456_',
         },
+        headers: { cookie },
       })
       expect(res.statusCode).toBe(200)
       expect(JSON.parse(res.body).message).toBe('Password updated successfully')
@@ -366,6 +378,7 @@ describe('auth routes (inject)', () => {
           newPassword: 'NewPass456_',
           confirmPassword: 'NewPass456_',
         },
+        headers: { cookie },
       })
       expect(res.statusCode).toBe(400)
     })
@@ -375,6 +388,7 @@ describe('auth routes (inject)', () => {
         method: 'PUT',
         url: '/api/v1/user',
         payload: { name: 'No ID' },
+        headers: { cookie },
       })
       expect(res.statusCode).toBe(400)
     })
@@ -384,6 +398,10 @@ describe('auth routes (inject)', () => {
 
   describe('full auth flow', () => {
     it('register → login → resolve → logout → resolve', async () => {
+      // Clear everything to test the complete flow from scratch
+      clearUserStore()
+      clearAllSessions()
+
       // 1. Resolve: no users → setup
       const r1 = await app.inject({ method: 'POST', url: '/api/v1/auth/resolve', payload: {} })
       expect(JSON.parse(r1.body).redirectUrl).toBe('/organization-setup')
@@ -434,6 +452,76 @@ describe('auth routes (inject)', () => {
         headers: { cookie },
       })
       expect(JSON.parse(r4.body).redirectUrl).toBe('/signin')
+    })
+  })
+
+  // ── Auth middleware ─────────────────────────────────────────────
+
+  describe('auth middleware', () => {
+    it('allows public routes without session', async () => {
+      const routes = [
+        { method: 'GET' as const, url: '/api/v1/ping' },
+        { method: 'GET' as const, url: '/api/v1/settings' },
+        { method: 'GET' as const, url: '/api/v1/account/basic-auth' },
+        { method: 'POST' as const, url: '/api/v1/auth/resolve', payload: {} },
+        {
+          method: 'POST' as const,
+          url: '/api/v1/auth/login',
+          payload: { email: 'admin@test.com', password: 'Pass123_' },
+        },
+      ]
+
+      for (const opts of routes) {
+        const res = await app.inject(opts)
+        expect(res.statusCode, `${opts.method} ${opts.url} should not return 401`).not.toBe(401)
+      }
+    })
+
+    it('returns 401 for protected routes without session', async () => {
+      const routes = [
+        { method: 'GET' as const, url: '/api/v1/chatflows' },
+        { method: 'GET' as const, url: '/api/v1/version' },
+        { method: 'GET' as const, url: '/api/v1/credentials' },
+        { method: 'GET' as const, url: '/api/v1/tools' },
+        { method: 'GET' as const, url: '/api/v1/variables' },
+        { method: 'GET' as const, url: '/api/v1/apikey' },
+        { method: 'POST' as const, url: '/api/v1/account/logout' },
+      ]
+
+      for (const opts of routes) {
+        const res = await app.inject(opts)
+        expect(res.statusCode, `${opts.method} ${opts.url} should return 401`).toBe(401)
+        const body = JSON.parse(res.body)
+        expect(body.message).toBe('Invalid or Missing token')
+      }
+    })
+
+    it('allows protected routes with valid session', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/chatflows',
+        headers: { cookie },
+      })
+      expect(res.statusCode).toBe(200)
+    })
+
+    it('returns 401 with expired/invalid cookie', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/chatflows',
+        headers: { cookie: 'connect.sid=invalid-token' },
+      })
+      expect(res.statusCode).toBe(401)
+    })
+
+    it('bypasses session auth for prediction endpoint (API key auth)', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/prediction/00000000-0000-0000-0000-000000000000',
+        payload: { question: 'Hi' },
+      })
+      // Should reach the handler (404 = chatflow not found), not 401
+      expect(res.statusCode).toBe(404)
     })
   })
 })

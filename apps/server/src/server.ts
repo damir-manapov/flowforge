@@ -3,6 +3,7 @@ import fastifyCors from '@fastify/cors'
 import fastifyMultipart from '@fastify/multipart'
 import fastifyRateLimit from '@fastify/rate-limit'
 import Fastify, { type FastifyError } from 'fastify'
+import { getAuthenticatedUserId, isPublicRoute } from './middleware/auth.js'
 import { registerApiKeyRoutes } from './routes/apikeys.js'
 import { registerAssistantRoutes } from './routes/assistants.js'
 import { registerAttachmentRoutes } from './routes/attachments.js'
@@ -77,6 +78,19 @@ export async function buildServer() {
         done(null, data)
       }
     })
+  })
+
+  // ── Auth middleware ──────────────────────────────────────────────
+  // Enforce session-cookie auth on all protected routes.
+  // Public routes (ping, login, register, prediction) bypass this hook.
+  app.addHook('onRequest', async (request, reply) => {
+    if (isPublicRoute(request.method, request.url)) return
+
+    const userId = getAuthenticatedUserId(request.headers.cookie)
+    if (!userId) {
+      reply.status(401).send({ message: 'Invalid or Missing token' })
+      return
+    }
   })
 
   app.setErrorHandler<FastifyError>((error, request, reply) => {

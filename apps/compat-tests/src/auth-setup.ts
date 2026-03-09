@@ -93,9 +93,7 @@ async function loginToFlowise(): Promise<void> {
   throw lastError ?? new Error('Login failed after retries')
 }
 
-if (testConfig.targetName !== 'reimpl') {
-  if (!loginPromise) {
-    loginPromise = loginToFlowise()
-  }
-  await loginPromise
+if (!loginPromise) {
+  loginPromise = loginToFlowise()
 }
+await loginPromise

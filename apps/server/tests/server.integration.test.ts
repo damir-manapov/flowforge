@@ -1,12 +1,14 @@
 import type { FastifyInstance } from 'fastify'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildServer } from '../src/server.js'
+import { clearAllSessions, clearUserStore } from '../src/services/authService.js'
 import { clearAssistantStore } from '../src/storage/assistantStore.js'
 import { clearCredentialStore } from '../src/storage/credentialStore.js'
 import { clearDocumentStoreStore } from '../src/storage/documentStoreStore.js'
 import { clearStore } from '../src/storage/inMemoryStore.js'
 import { clearToolStore } from '../src/storage/toolStore.js'
 import { clearVariableStore } from '../src/storage/variableStore.js'
+import { registerAndLogin } from './_helpers/auth.js'
 import { VALID_FLOW_DATA } from './_helpers/fixtures.js'
 
 function clearAllStores(): void {
@@ -16,16 +18,20 @@ function clearAllStores(): void {
   clearCredentialStore()
   clearAssistantStore()
   clearDocumentStoreStore()
+  clearUserStore()
+  clearAllSessions()
 }
 
 describe('server integration (inject)', () => {
   let app: FastifyInstance
+  let cookie: string
 
   beforeEach(async () => {
     vi.stubEnv('LOG_LEVEL', 'silent')
     clearAllStores()
     app = await buildServer()
     await app.ready()
+    cookie = await registerAndLogin(app)
   })
 
   afterEach(async () => {
@@ -33,6 +39,23 @@ describe('server integration (inject)', () => {
     clearAllStores()
     vi.unstubAllEnvs()
   })
+
+  /** Inject with auth cookie for protected routes. */
+  async function authed(opts: {
+    method: string
+    url: string
+    payload?: string | object
+    headers?: Record<string, string | string[]>
+  }): Promise<{ statusCode: number; body: string; headers: Record<string, string | string[] | undefined> }> {
+    const res = await app.inject({
+      method: opts.method as 'GET',
+      url: opts.url,
+      ...(opts.payload !== undefined ? { payload: opts.payload } : {}),
+      headers: { ...opts.headers, cookie },
+    })
+    // Cast needed: Fastify overload intersection type confuses TS with many callsites
+    return res as unknown as Awaited<ReturnType<typeof authed>>
+  }
 
   describe('ping', () => {
     it('GET /api/v1/ping returns 200 pong', async () => {
@@ -44,13 +67,13 @@ describe('server integration (inject)', () => {
 
   describe('not-found handler', () => {
     it('returns 200 HTML for unknown GET route (SPA fallback)', async () => {
-      const res = await app.inject({ method: 'GET', url: '/api/v1/nonexistent' })
+      const res = await authed({ method: 'GET', url: '/api/v1/nonexistent' })
       expect(res.statusCode).toBe(200)
       expect(res.headers['content-type']).toContain('text/html')
     })
 
     it('returns structured 404 for unknown non-GET route', async () => {
-      const res = await app.inject({ method: 'POST', url: '/api/v1/nonexistent' })
+      const res = await authed({ method: 'POST', url: '/api/v1/nonexistent' })
       expect(res.statusCode).toBe(404)
       const body = JSON.parse(res.body)
       expect(body.statusCode).toBe(404)
@@ -61,7 +84,7 @@ describe('server integration (inject)', () => {
 
   describe('error handler', () => {
     it('returns structured error for malformed JSON body', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: '{ invalid json }',
@@ -77,7 +100,7 @@ describe('server integration (inject)', () => {
 
   describe('chatflows CRUD', () => {
     it('creates and retrieves a chatflow', async () => {
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'test-flow' },
@@ -87,18 +110,18 @@ describe('server integration (inject)', () => {
       expect(chatflow.name).toBe('test-flow')
       expect(chatflow.id).toBeTypeOf('string')
 
-      const get = await app.inject({ method: 'GET', url: `/api/v1/chatflows/${chatflow.id}` })
+      const get = await authed({ method: 'GET', url: `/api/v1/chatflows/${chatflow.id}` })
       expect(get.statusCode).toBe(200)
       expect(JSON.parse(get.body).id).toBe(chatflow.id)
     })
 
     it('returns 400 for invalid UUID on GET', async () => {
-      const res = await app.inject({ method: 'GET', url: '/api/v1/chatflows/bad-id' })
+      const res = await authed({ method: 'GET', url: '/api/v1/chatflows/bad-id' })
       expect(res.statusCode).toBe(400)
     })
 
     it('returns 404 for non-existent chatflow', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'GET',
         url: '/api/v1/chatflows/00000000-0000-0000-0000-000000000000',
       })
@@ -106,14 +129,14 @@ describe('server integration (inject)', () => {
     })
 
     it('updates a chatflow', async () => {
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'original' },
       })
       const { id } = JSON.parse(create.body)
 
-      const update = await app.inject({
+      const update = await authed({
         method: 'PUT',
         url: `/api/v1/chatflows/${id}`,
         payload: { name: 'updated' },
@@ -123,24 +146,24 @@ describe('server integration (inject)', () => {
     })
 
     it('deletes a chatflow', async () => {
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'to-delete' },
       })
       const { id } = JSON.parse(create.body)
 
-      const del = await app.inject({ method: 'DELETE', url: `/api/v1/chatflows/${id}` })
+      const del = await authed({ method: 'DELETE', url: `/api/v1/chatflows/${id}` })
       expect(del.statusCode).toBe(200)
       const delBody = JSON.parse(del.body)
       expect(delBody).toEqual({ raw: [], affected: 1 })
 
-      const get = await app.inject({ method: 'GET', url: `/api/v1/chatflows/${id}` })
+      const get = await authed({ method: 'GET', url: `/api/v1/chatflows/${id}` })
       expect(get.statusCode).toBe(404)
     })
 
     it('returns 400 when name is missing on POST', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: {},
@@ -148,14 +171,14 @@ describe('server integration (inject)', () => {
       expect(res.statusCode).toBe(400)
     })
     it('returns 400 when PUT body is missing', async () => {
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'put-test' },
       })
       const { id } = JSON.parse(create.body)
 
-      const res = await app.inject({
+      const res = await authed({
         method: 'PUT',
         url: `/api/v1/chatflows/${id}`,
       })
@@ -167,14 +190,14 @@ describe('server integration (inject)', () => {
 
   describe('chatflows-uploads', () => {
     it('returns upload config for existing chatflow', async () => {
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'upload-test' },
       })
       const { id } = JSON.parse(create.body)
 
-      const res = await app.inject({ method: 'GET', url: `/api/v1/chatflows-uploads/${id}` })
+      const res = await authed({ method: 'GET', url: `/api/v1/chatflows-uploads/${id}` })
       expect(res.statusCode).toBe(200)
       const body = JSON.parse(res.body)
       expect(body.isSpeechToTextEnabled).toBe(false)
@@ -185,12 +208,12 @@ describe('server integration (inject)', () => {
     })
 
     it('returns 400 for invalid UUID', async () => {
-      const res = await app.inject({ method: 'GET', url: '/api/v1/chatflows-uploads/bad-id' })
+      const res = await authed({ method: 'GET', url: '/api/v1/chatflows-uploads/bad-id' })
       expect(res.statusCode).toBe(400)
     })
 
     it('returns 404 for non-existent chatflow', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'GET',
         url: '/api/v1/chatflows-uploads/00000000-0000-0000-0000-000000000000',
       })
@@ -200,10 +223,10 @@ describe('server integration (inject)', () => {
 
   describe('pagination (content-negotiation)', () => {
     it('GET /chatflows returns bare array without ?page=', async () => {
-      await app.inject({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'pg-1' } })
-      await app.inject({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'pg-2' } })
+      await authed({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'pg-1' } })
+      await authed({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'pg-2' } })
 
-      const res = await app.inject({ method: 'GET', url: '/api/v1/chatflows' })
+      const res = await authed({ method: 'GET', url: '/api/v1/chatflows' })
       expect(res.statusCode).toBe(200)
       const body = JSON.parse(res.body)
       expect(Array.isArray(body)).toBe(true)
@@ -211,10 +234,10 @@ describe('server integration (inject)', () => {
     })
 
     it('GET /chatflows?page=1&limit=1 returns paginated response', async () => {
-      await app.inject({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'pg-a' } })
-      await app.inject({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'pg-b' } })
+      await authed({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'pg-a' } })
+      await authed({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'pg-b' } })
 
-      const res = await app.inject({ method: 'GET', url: '/api/v1/chatflows?page=1&limit=1' })
+      const res = await authed({ method: 'GET', url: '/api/v1/chatflows?page=1&limit=1' })
       expect(res.statusCode).toBe(200)
       const body = JSON.parse(res.body)
       expect(body.data).toHaveLength(1)
@@ -222,21 +245,21 @@ describe('server integration (inject)', () => {
     })
 
     it('GET /chatflows?type=CHATFLOW filters by type', async () => {
-      await app.inject({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'cf', type: 'CHATFLOW' } })
-      await app.inject({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'af', type: 'MULTIAGENT' } })
+      await authed({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'cf', type: 'CHATFLOW' } })
+      await authed({ method: 'POST', url: '/api/v1/chatflows', payload: { name: 'af', type: 'MULTIAGENT' } })
 
-      const res = await app.inject({ method: 'GET', url: '/api/v1/chatflows?type=CHATFLOW' })
+      const res = await authed({ method: 'GET', url: '/api/v1/chatflows?type=CHATFLOW' })
       const body = JSON.parse(res.body) as Array<{ name: string }>
       // Only CHATFLOW type returned
       expect(body.every((cf) => cf.name !== 'af' || true)).toBe(true)
     })
 
     it('GET /executions returns empty paginated or array', async () => {
-      const bare = await app.inject({ method: 'GET', url: '/api/v1/executions' })
+      const bare = await authed({ method: 'GET', url: '/api/v1/executions' })
       expect(bare.statusCode).toBe(200)
       expect(JSON.parse(bare.body)).toEqual([])
 
-      const paginated = await app.inject({ method: 'GET', url: '/api/v1/executions?page=1&limit=12' })
+      const paginated = await authed({ method: 'GET', url: '/api/v1/executions?page=1&limit=12' })
       expect(paginated.statusCode).toBe(200)
       expect(JSON.parse(paginated.body)).toEqual({ data: [], total: 0 })
     })
@@ -262,7 +285,7 @@ describe('server integration (inject)', () => {
     })
 
     it('returns 500 for chatflow with empty graph', async () => {
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'empty-graph' },
@@ -284,7 +307,7 @@ describe('server integration (inject)', () => {
         nodes: [{ id: 'n0', data: { name: 'plain', type: 'CustomNode', label: 'Plain', inputs: {} } }],
         edges: [],
       })
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'bad-ending', flowData: badFlowData },
@@ -302,7 +325,7 @@ describe('server integration (inject)', () => {
     })
 
     it('returns 400 when question is missing', async () => {
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'pred-test', flowData: VALID_FLOW_DATA },
@@ -318,7 +341,7 @@ describe('server integration (inject)', () => {
     })
 
     it('returns stub response for non-streaming prediction', async () => {
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'pred-test', flowData: VALID_FLOW_DATA },
@@ -338,7 +361,7 @@ describe('server integration (inject)', () => {
 
     it('returns SSE stream for streaming prediction', async () => {
       vi.stubEnv('STUB_TOKEN_DELAY_MS', '0')
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'stream-test', flowData: VALID_FLOW_DATA },
@@ -372,7 +395,7 @@ describe('server integration (inject)', () => {
 
   describe('attachments', () => {
     it('returns 400 for invalid chatflowId', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'POST',
         url: '/api/v1/attachments/bad-id/chat1',
         payload: 'test',
@@ -382,7 +405,7 @@ describe('server integration (inject)', () => {
     })
 
     it('returns 400 for empty chatId', async () => {
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'attach-test' },
@@ -392,7 +415,7 @@ describe('server integration (inject)', () => {
       const boundary = '----testboundary'
       const body = `--${boundary}\r\nContent-Disposition: form-data; name="files"; filename="test.txt"\r\nContent-Type: text/plain\r\n\r\nhello\r\n--${boundary}--\r\n`
 
-      const res = await app.inject({
+      const res = await authed({
         method: 'POST',
         url: `/api/v1/attachments/${id}/%20`,
         payload: body,
@@ -404,14 +427,14 @@ describe('server integration (inject)', () => {
 
   describe('internal-prediction', () => {
     it('returns stub response (same as public prediction)', async () => {
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'internal-pred-test', flowData: VALID_FLOW_DATA },
       })
       const { id } = JSON.parse(create.body)
 
-      const res = await app.inject({
+      const res = await authed({
         method: 'POST',
         url: `/api/v1/internal-prediction/${id}`,
         payload: { question: 'Hello', streaming: false },
@@ -424,14 +447,14 @@ describe('server integration (inject)', () => {
 
     it('returns SSE stream for streaming', async () => {
       vi.stubEnv('STUB_TOKEN_DELAY_MS', '0')
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'internal-stream-test', flowData: VALID_FLOW_DATA },
       })
       const { id } = JSON.parse(create.body)
 
-      const res = await app.inject({
+      const res = await authed({
         method: 'POST',
         url: `/api/v1/internal-prediction/${id}`,
         payload: { question: 'Hello', streaming: true },
@@ -444,7 +467,7 @@ describe('server integration (inject)', () => {
     })
 
     it('returns 400 for invalid flowId', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'POST',
         url: '/api/v1/internal-prediction/not-a-uuid',
         payload: { question: 'Hi' },
@@ -453,7 +476,7 @@ describe('server integration (inject)', () => {
     })
 
     it('returns 404 for non-existent chatflow', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'POST',
         url: '/api/v1/internal-prediction/00000000-0000-0000-0000-000000000000',
         payload: { question: 'Hi' },
@@ -464,14 +487,14 @@ describe('server integration (inject)', () => {
 
   describe('internal-chatmessage', () => {
     it('returns empty array for any chatflow', async () => {
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'chatmsg-test' },
       })
       const { id } = JSON.parse(create.body)
 
-      const res = await app.inject({
+      const res = await authed({
         method: 'GET',
         url: `/api/v1/internal-chatmessage/${id}`,
       })
@@ -480,7 +503,7 @@ describe('server integration (inject)', () => {
     })
 
     it('returns empty array even for unknown id', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'GET',
         url: '/api/v1/internal-chatmessage/00000000-0000-0000-0000-000000000000',
       })
@@ -492,7 +515,7 @@ describe('server integration (inject)', () => {
   // ── Step 10: Export/Import & Utility Endpoints ──────────────────────
   describe('export-import', () => {
     it('POST /export returns export structure with FileDefaultName', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'POST',
         url: '/api/v1/export-import/export',
         payload: {},
@@ -508,13 +531,13 @@ describe('server integration (inject)', () => {
 
     it('POST /export with chatflow=true includes chatflows', async () => {
       // Create a chatflow first
-      await app.inject({
+      await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'export-cf', type: 'CHATFLOW' },
       })
 
-      const res = await app.inject({
+      const res = await authed({
         method: 'POST',
         url: '/api/v1/export-import/export',
         payload: { chatflow: true },
@@ -527,13 +550,13 @@ describe('server integration (inject)', () => {
 
     it('POST /export with tool=true includes tools', async () => {
       // Create a tool first
-      await app.inject({
+      await authed({
         method: 'POST',
         url: '/api/v1/tools',
         payload: { name: 'export-tool', description: 'test', schema: '{}' },
       })
 
-      const res = await app.inject({
+      const res = await authed({
         method: 'POST',
         url: '/api/v1/export-import/export',
         payload: { tool: true },
@@ -544,7 +567,7 @@ describe('server integration (inject)', () => {
     })
 
     it('POST /import accepts body and returns success', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'POST',
         url: '/api/v1/export-import/import',
         payload: { ChatFlow: [], Tool: [] },
@@ -555,7 +578,7 @@ describe('server integration (inject)', () => {
     })
 
     it('POST /import rejects missing body', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'POST',
         url: '/api/v1/export-import/import',
         headers: { 'content-type': 'application/json' },
@@ -567,7 +590,7 @@ describe('server integration (inject)', () => {
 
   describe('marketplaces', () => {
     it('GET /marketplaces/custom returns empty array', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'GET',
         url: '/api/v1/marketplaces/custom',
       })
@@ -578,14 +601,14 @@ describe('server integration (inject)', () => {
 
   describe('chatflows/has-changed', () => {
     it('returns hasChanged false for existing chatflow', async () => {
-      const create = await app.inject({
+      const create = await authed({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: { name: 'change-check' },
       })
       const { id } = JSON.parse(create.body)
 
-      const res = await app.inject({
+      const res = await authed({
         method: 'GET',
         url: `/api/v1/chatflows/has-changed/${id}`,
       })
@@ -594,7 +617,7 @@ describe('server integration (inject)', () => {
     })
 
     it('returns hasChanged false for unknown id', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'GET',
         url: '/api/v1/chatflows/has-changed/00000000-0000-0000-0000-000000000000',
       })
@@ -606,7 +629,7 @@ describe('server integration (inject)', () => {
   // ── Step 11: Assistant Sub-resources & Credential Filtering ────────
   describe('assistant components', () => {
     it('GET /assistants/components/chatmodels returns chat model list', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'GET',
         url: '/api/v1/assistants/components/chatmodels',
       })
@@ -621,13 +644,13 @@ describe('server integration (inject)', () => {
 
     it('GET /assistants/components/docstores returns document stores', async () => {
       // Create a doc store first
-      await app.inject({
+      await authed({
         method: 'POST',
         url: '/api/v1/document-store/store',
         payload: { name: 'assistant-ds' },
       })
 
-      const res = await app.inject({
+      const res = await authed({
         method: 'GET',
         url: '/api/v1/assistants/components/docstores',
       })
@@ -639,13 +662,13 @@ describe('server integration (inject)', () => {
 
     it('GET /assistants/components/tools returns tools', async () => {
       // Create a tool first
-      await app.inject({
+      await authed({
         method: 'POST',
         url: '/api/v1/tools',
         payload: { name: 'assistant-tool', description: 'test', schema: '{}' },
       })
 
-      const res = await app.inject({
+      const res = await authed({
         method: 'GET',
         url: '/api/v1/assistants/components/tools',
       })
@@ -659,18 +682,18 @@ describe('server integration (inject)', () => {
   describe('credential filtering', () => {
     it('GET /credentials?credentialName filters by type', async () => {
       // Create two credentials with different types
-      await app.inject({
+      await authed({
         method: 'POST',
         url: '/api/v1/credentials',
         payload: { name: 'deepseek-key', credentialName: 'deepseekApi', plainDataObj: { apiKey: 'sk-1' } },
       })
-      await app.inject({
+      await authed({
         method: 'POST',
         url: '/api/v1/credentials',
         payload: { name: 'openai-key', credentialName: 'openAIApi', plainDataObj: { apiKey: 'sk-2' } },
       })
 
-      const res = await app.inject({
+      const res = await authed({
         method: 'GET',
         url: '/api/v1/credentials?credentialName=deepseekApi',
       })
@@ -681,18 +704,18 @@ describe('server integration (inject)', () => {
     })
 
     it('GET /credentials without filter returns all', async () => {
-      await app.inject({
+      await authed({
         method: 'POST',
         url: '/api/v1/credentials',
         payload: { name: 'cred-a', credentialName: 'typeA', plainDataObj: {} },
       })
-      await app.inject({
+      await authed({
         method: 'POST',
         url: '/api/v1/credentials',
         payload: { name: 'cred-b', credentialName: 'typeB', plainDataObj: {} },
       })
 
-      const res = await app.inject({
+      const res = await authed({
         method: 'GET',
         url: '/api/v1/credentials',
       })
@@ -704,7 +727,7 @@ describe('server integration (inject)', () => {
 
   describe('credential icon', () => {
     it('GET /components-credentials-icon/:name returns 404', async () => {
-      const res = await app.inject({
+      const res = await authed({
         method: 'GET',
         url: '/api/v1/components-credentials-icon/openAIApi',
       })
