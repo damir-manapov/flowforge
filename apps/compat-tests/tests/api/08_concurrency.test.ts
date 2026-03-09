@@ -1,5 +1,6 @@
 import { runConcurrent } from '@flowforge/test-utils'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { VALID_FLOW_DATA } from '../../src/fixtures.js'
 import { client, hasLLM, log } from '../../src/setup.js'
 
 describe('08 — Concurrency', () => {
@@ -8,7 +9,7 @@ describe('08 — Concurrency', () => {
   beforeAll(async () => {
     const res = await client.post('/chatflows', {
       name: 'concurrency-test-flow',
-      flowData: '{"nodes":[],"edges":[]}',
+      flowData: VALID_FLOW_DATA,
       deployed: false,
       isPublic: false,
       apikeyid: '',

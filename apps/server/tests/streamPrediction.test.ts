@@ -30,10 +30,10 @@ describe('streamPrediction', () => {
     expect(tokenEvents.length).toBe(7) // 7 stub tokens
 
     const metaEvent = parsed.find((e) => e.event === 'metadata')
-    expect(metaEvent).toBeDefined()
-    const meta = JSON.parse(metaEvent?.data ?? '{}')
-    expect(meta.chatId).toBeDefined()
-    expect(meta.chatMessageId).toBeDefined()
+    if (!metaEvent) throw new Error('expected metadata event')
+    const meta = JSON.parse(metaEvent.data)
+    expect(meta.chatId).toBeTypeOf('string')
+    expect(meta.chatMessageId).toBeTypeOf('string')
 
     // No standard SSE event: field should appear (Flowise uses JSON envelope)
     expect(allOutput).not.toContain('event: token')

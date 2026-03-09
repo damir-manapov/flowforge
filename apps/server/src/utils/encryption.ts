@@ -35,7 +35,9 @@ export function decryptCredentialData(encryptedData: string): Record<string, unk
   if (!str) return {}
   try {
     return JSON.parse(str) as Record<string, unknown>
-  } catch {
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err)
+    console.warn('[encryption] Failed to decrypt credential data:', detail)
     return {}
   }
 }

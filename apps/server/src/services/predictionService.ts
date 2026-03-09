@@ -60,6 +60,7 @@ export function extractCredentialIds(flowDataJson: string): string[] {
     if (!fd.nodes) return []
     return fd.nodes.map((n) => n.data?.credential).filter((id): id is string => typeof id === 'string' && id.length > 0)
   } catch {
+    console.warn('[predictionService] Malformed flowData JSON, cannot extract credential IDs')
     return []
   }
 }
@@ -87,6 +88,7 @@ export function allNodesSupported(flowDataJson: string): boolean {
       return typeof name === 'string' && hasNode(name)
     })
   } catch {
+    console.warn('[predictionService] Malformed flowData JSON, cannot check node support')
     return false
   }
 }
@@ -185,7 +187,7 @@ export async function streamPrediction(
     } catch (err) {
       // Fall through to stub on flow execution error
       const msg = err instanceof Error ? err.message : String(err)
-      console.error('[flowRunner] Real prediction failed, falling back to stub:', msg)
+      console.warn('[flowRunner] Real prediction failed, falling back to stub:', msg)
     }
   }
 

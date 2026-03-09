@@ -3,6 +3,17 @@ import type { Chatflow } from '../../src/storage/inMemoryStore.js'
 /** UUID v4 regex — use in `expect(value).toMatch(UUID_RE)`. */
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4?[0-9a-f]{3}-[89ab]?[0-9a-f]{3}-[0-9a-f]{12}$/i
 
+/** Minimal flowData with one stub node — passes graph validation (has an ending node). */
+export const VALID_FLOW_DATA = JSON.stringify({
+  nodes: [
+    {
+      id: 'node_0',
+      data: { name: 'stubNode', type: 'CustomNode', label: 'Stub', inputs: {}, baseClasses: ['Chain'] },
+    },
+  ],
+  edges: [],
+})
+
 /**
  * Build a minimal `Chatflow` object with sensible defaults.
  * Override any field via `overrides`.

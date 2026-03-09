@@ -162,12 +162,13 @@ describe.skipIf(SKIP)('Integration — E2E Prediction (Deepseek)', () => {
 
     // Metadata with chatId etc.
     const metaEvent = events.find((e) => e.event === 'metadata')
-    expect(metaEvent).toBeDefined()
-    if (metaEvent) {
-      const meta = JSON.parse(metaEvent.data)
-      expect(meta.chatId).toBeTruthy()
-      expect(meta.chatMessageId).toBeTruthy()
-    }
+    if (!metaEvent) throw new Error('expected metadata event')
+
+    const meta = JSON.parse(metaEvent.data) as Record<string, unknown>
+    log.info('Metadata shape', { keys: Object.keys(meta), meta })
+    expect(meta.chatId).toBeTypeOf('string')
+    expect(meta.chatMessageId).toBeTypeOf('string')
+    expect(meta.sessionId).toBeTypeOf('string')
 
     // Stream should end
     const endEvent = events.find((e) => e.event === 'end')

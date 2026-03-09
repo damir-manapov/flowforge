@@ -27,15 +27,12 @@ describe('04 — Variables CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = VariableSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = VariableSchema.parse(body)
 
-    if (parsed.success) {
-      createdId = parsed.data.id
-      expect(parsed.data.name).toBe('COMPAT_TEST_VAR')
-      expect(parsed.data.value).toBe('test-value-123')
-      expect(parsed.data.type).toBe('static')
-    }
+    createdId = parsed.id
+    expect(parsed.name).toBe('COMPAT_TEST_VAR')
+    expect(parsed.value).toBe('test-value-123')
+    expect(parsed.type).toBe('static')
   })
 
   it('GET /variables returns a list including the created variable', async () => {
@@ -44,15 +41,12 @@ describe('04 — Variables CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = VariableListSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = VariableListSchema.parse(body)
 
-    if (parsed.success) {
-      const found = parsed.data.find((v) => v.id === createdId)
-      expect(found).toBeDefined()
-      expect(found?.name).toBe('COMPAT_TEST_VAR')
-      expect(found?.value).toBe('test-value-123')
-    }
+    const found = parsed.find((v) => v.id === createdId)
+    expect(found).toBeDefined()
+    expect(found?.name).toBe('COMPAT_TEST_VAR')
+    expect(found?.value).toBe('test-value-123')
   })
 
   it('PUT /variables/:id updates a variable', async () => {
@@ -67,13 +61,9 @@ describe('04 — Variables CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = VariableSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
-
-    if (parsed.success) {
-      expect(parsed.data.value).toBe('updated-value')
-      expect(parsed.data.type).toBe('runtime')
-    }
+    const parsed = VariableSchema.parse(body)
+    expect(parsed.value).toBe('updated-value')
+    expect(parsed.type).toBe('runtime')
   })
 
   it('DELETE /variables/:id deletes a variable', async () => {
@@ -82,12 +72,8 @@ describe('04 — Variables CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = DeleteResultSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
-
-    if (parsed.success) {
-      expect(parsed.data.affected).toBe(1)
-    }
+    const parsed = DeleteResultSchema.parse(body)
+    expect(parsed.affected).toBe(1)
 
     // Mark as cleaned up
     createdId = ''
@@ -118,6 +104,7 @@ describe('04 — API Keys CRUD', () => {
   it('POST /apikey creates a key and returns full array', async () => {
     const res = await client.post('/apikey', {
       keyName: 'compat-test-key',
+      permissions: ['prediction'],
     })
 
     log.info('create apikey response', { status: res.status })
@@ -125,23 +112,19 @@ describe('04 — API Keys CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = ApiKeyListSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = ApiKeyListSchema.parse(body)
 
-    if (parsed.success) {
-      expect(parsed.data.length).toBeGreaterThanOrEqual(1)
+    expect(parsed.length).toBeGreaterThanOrEqual(1)
 
-      const created = parsed.data.find((k) => k.keyName === 'compat-test-key')
-      expect(created).toBeDefined()
+    const created = parsed.find((k) => k.keyName === 'compat-test-key')
+    expect(created).toBeDefined()
+    if (!created) throw new Error('expected created key')
 
-      if (created) {
-        createdKeyId = created.id
-        expect(created.apiKey).toBeTruthy()
-        expect(created.apiKey.length).toBeGreaterThan(20)
-        expect(created.apiSecret).toBeTruthy()
-        expect(created.apiSecret).toContain('.') // hash.salt format
-      }
-    }
+    createdKeyId = created.id
+    expect(created.apiKey).toBeTypeOf('string')
+    expect(created.apiKey.length).toBeGreaterThan(20)
+    expect(created.apiSecret).toBeTypeOf('string')
+    expect(created.apiSecret).toContain('.') // hash.salt format
   })
 
   it('GET /apikey returns the full array', async () => {
@@ -150,29 +133,21 @@ describe('04 — API Keys CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = ApiKeyListSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = ApiKeyListSchema.parse(body)
 
-    if (parsed.success) {
-      const found = parsed.data.find((k) => k.id === createdKeyId)
-      expect(found).toBeDefined()
-      expect(found?.keyName).toBe('compat-test-key')
-    }
+    const found = parsed.find((k) => k.id === createdKeyId)
+    expect(found).toBeDefined()
+    expect(found?.keyName).toBe('compat-test-key')
   })
 
-  it('DELETE /apikey/:id returns remaining keys without deleted', async () => {
+  it('DELETE /apikey/:id deletes the key', async () => {
     const res = await client.delete(`/apikey/${createdKeyId}`)
 
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = ApiKeyListSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
-
-    if (parsed.success) {
-      const found = parsed.data.find((k) => k.id === createdKeyId)
-      expect(found).toBeUndefined()
-    }
+    const parsed = DeleteResultSchema.parse(body)
+    expect(parsed.affected).toBe(1)
 
     // Mark as cleaned up
     createdKeyId = ''

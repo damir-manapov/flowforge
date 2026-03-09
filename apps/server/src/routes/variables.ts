@@ -17,11 +17,11 @@ interface VariableBody {
 export function registerVariableRoutes(app: FastifyInstance): void {
   app.get('/api/v1/variables', async (request: FastifyRequest<{ Querystring: PaginationQuery }>, reply) => {
     const variables = getAllVariables()
-    return reply.code(200).send(paginate(variables, request.query as PaginationQuery))
+    return reply.code(200).send(paginate(variables, request.query))
   })
 
-  app.post('/api/v1/variables', async (request: FastifyRequest, reply) => {
-    const body = request.body as VariableBody | null
+  app.post('/api/v1/variables', async (request: FastifyRequest<{ Body: VariableBody }>, reply) => {
+    const { body } = request
 
     if (!body || typeof body !== 'object') {
       return sendError(reply, 400, 'Request body is required')
@@ -35,26 +35,29 @@ export function registerVariableRoutes(app: FastifyInstance): void {
     return reply.code(200).send(variable)
   })
 
-  app.put('/api/v1/variables/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
-    const { id } = request.params
-    const body = request.body as Partial<VariableBody> | null
+  app.put(
+    '/api/v1/variables/:id',
+    async (request: FastifyRequest<{ Params: IdParams; Body: Partial<VariableBody> }>, reply) => {
+      const { id } = request.params
+      const { body } = request
 
-    if (!isValidUUID(id)) {
-      return sendError(reply, 400, `Invalid variable id format: ${id}`)
-    }
+      if (!isValidUUID(id)) {
+        return sendError(reply, 400, `Invalid variable id format: ${id}`)
+      }
 
-    if (!body || typeof body !== 'object') {
-      return sendError(reply, 400, 'Request body is required')
-    }
+      if (!body || typeof body !== 'object') {
+        return sendError(reply, 400, 'Request body is required')
+      }
 
-    const updated = updateVariable(id, body)
+      const updated = updateVariable(id, body)
 
-    if (!updated) {
-      return sendError(reply, 404, `Variable ${id} not found`)
-    }
+      if (!updated) {
+        return sendError(reply, 404, `Variable ${id} not found`)
+      }
 
-    return reply.code(200).send(updated)
-  })
+      return reply.code(200).send(updated)
+    },
+  )
 
   app.delete('/api/v1/variables/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
     const { id } = request.params

@@ -40,17 +40,14 @@ describe('12 — Tools CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = ToolSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = ToolSchema.parse(body)
 
-    if (parsed.success) {
-      createdId = parsed.data.id
-      expect(parsed.data.name).toBe('compat-test-tool')
-      expect(parsed.data.description).toBe('A test tool for compat testing')
-      expect(parsed.data.color).toBe('#FF5733')
-      expect(parsed.data.schema).toBe('{}')
-      expect(parsed.data.func).toBe('return "hello"')
-    }
+    createdId = parsed.id
+    expect(parsed.name).toBe('compat-test-tool')
+    expect(parsed.description).toBe('A test tool for compat testing')
+    expect(parsed.color).toBe('#FF5733')
+    expect(parsed.schema).toBe('{}')
+    expect(parsed.func).toBe('return "hello"')
   })
 
   it('GET /tools returns a list including the created tool', async () => {
@@ -59,14 +56,11 @@ describe('12 — Tools CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = ToolListSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = ToolListSchema.parse(body)
 
-    if (parsed.success) {
-      const found = parsed.data.find((t) => t.id === createdId)
-      expect(found).toBeDefined()
-      expect(found?.name).toBe('compat-test-tool')
-    }
+    const found = parsed.find((t) => t.id === createdId)
+    expect(found).toBeDefined()
+    expect(found?.name).toBe('compat-test-tool')
   })
 
   it('PUT /tools/:id updates a tool', async () => {
@@ -79,14 +73,11 @@ describe('12 — Tools CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = ToolSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = ToolSchema.parse(body)
 
-    if (parsed.success) {
-      expect(parsed.data.name).toBe('updated-tool')
-      // Other fields should be preserved
-      expect(parsed.data.color).toBe('#FF5733')
-    }
+    expect(parsed.name).toBe('updated-tool')
+    // Other fields should be preserved
+    expect(parsed.color).toBe('#FF5733')
   })
 
   it('DELETE /tools/:id deletes a tool', async () => {
@@ -95,12 +86,8 @@ describe('12 — Tools CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = DeleteResultSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
-
-    if (parsed.success) {
-      expect(parsed.data.affected).toBe(1)
-    }
+    const parsed = DeleteResultSchema.parse(body)
+    expect(parsed.affected).toBe(1)
 
     // Mark as cleaned up
     createdId = ''
@@ -142,14 +129,11 @@ describe('12 — Assistants CRUD', { skip: !hasLocalAssistants }, () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = AssistantSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = AssistantSchema.parse(body)
 
-    if (parsed.success) {
-      createdId = parsed.data.id
-      const details = JSON.parse(parsed.data.details) as { name: string }
-      expect(details.name).toBe('test-assistant')
-    }
+    createdId = parsed.id
+    const details = JSON.parse(parsed.details) as { name: string }
+    expect(details.name).toBe('test-assistant')
   })
 
   it('GET /assistants returns a list', async () => {
@@ -158,13 +142,10 @@ describe('12 — Assistants CRUD', { skip: !hasLocalAssistants }, () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = AssistantListSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = AssistantListSchema.parse(body)
 
-    if (parsed.success) {
-      const found = parsed.data.find((a) => a.id === createdId)
-      expect(found).toBeDefined()
-    }
+    const found = parsed.find((a) => a.id === createdId)
+    expect(found).toBeDefined()
   })
 
   it('DELETE /assistants/:id deletes an assistant', async () => {
@@ -173,12 +154,8 @@ describe('12 — Assistants CRUD', { skip: !hasLocalAssistants }, () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = DeleteResultSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
-
-    if (parsed.success) {
-      expect(parsed.data.affected).toBe(1)
-    }
+    const parsed = DeleteResultSchema.parse(body)
+    expect(parsed.affected).toBe(1)
 
     createdId = ''
   })

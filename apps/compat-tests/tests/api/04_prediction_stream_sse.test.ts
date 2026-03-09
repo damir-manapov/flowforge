@@ -1,5 +1,6 @@
 import { collectSSE, parseFlowiseEvents } from '@flowforge/test-utils'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { VALID_FLOW_DATA } from '../../src/fixtures.js'
 import { client, hasLLM, log, recorder, shouldRecord } from '../../src/setup.js'
 
 describe.skipIf(!hasLLM)('04 — Prediction SSE Streaming', () => {
@@ -8,7 +9,7 @@ describe.skipIf(!hasLLM)('04 — Prediction SSE Streaming', () => {
   beforeAll(async () => {
     const res = await client.post('/chatflows', {
       name: 'stream-test-flow',
-      flowData: '{"nodes":[],"edges":[]}',
+      flowData: VALID_FLOW_DATA,
       deployed: false,
       isPublic: false,
       apikeyid: '',
@@ -44,7 +45,7 @@ describe.skipIf(!hasLLM)('04 — Prediction SSE Streaming', () => {
       durationMs: result.durationMs,
     })
 
-    expect(result.events.length).toBeGreaterThan(0)
+    expect(result.events.length).toBeGreaterThanOrEqual(3)
 
     const parsed = parseFlowiseEvents(result.events)
 
@@ -83,13 +84,12 @@ describe.skipIf(!hasLLM)('04 — Prediction SSE Streaming', () => {
 
     const metaEvent = parsed.find((e) => e.event === 'metadata')
     expect(metaEvent).toBeDefined()
+    if (!metaEvent) throw new Error('expected metadata event')
 
-    if (metaEvent) {
-      const payload = JSON.parse(metaEvent.data) as Record<string, unknown>
-      expect(payload).toHaveProperty('chatId')
-      expect(payload).toHaveProperty('chatMessageId')
-      expect(payload).toHaveProperty('sessionId')
-    }
+    const payload = JSON.parse(metaEvent.data)
+    expect(payload.chatId).toBeTypeOf('string')
+    expect(payload.chatMessageId).toBeTypeOf('string')
+    expect(payload.sessionId).toBeTypeOf('string')
 
     const endEvent = parsed.find((e) => e.event === 'end')
     expect(endEvent).toBeDefined()

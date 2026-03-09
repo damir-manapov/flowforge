@@ -3,7 +3,8 @@ export interface ApiKey {
   keyName: string
   apiKey: string
   apiSecret: string
-  createdAt: string
+  updatedDate: string
+  permissions: string[]
   chatFlows: string[]
 }
 

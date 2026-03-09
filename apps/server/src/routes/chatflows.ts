@@ -22,7 +22,7 @@ interface ChatflowListQuery extends PaginationQuery {
 export function registerChatflowRoutes(app: FastifyInstance): void {
   app.get('/api/v1/chatflows', async (request: FastifyRequest<{ Querystring: ChatflowListQuery }>, reply) => {
     let chatflows = getAllChatflows()
-    const query = request.query as ChatflowListQuery
+    const { query } = request
 
     // Filter by type (CHATFLOW or AGENTFLOW) if specified
     if (query.type) {
@@ -44,7 +44,7 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
     if (!chatflow) {
       return sendError(
         reply,
-        500,
+        404,
         `Error: chatflowsService.getChatflowById - Chatflow ${id} not found in the database!`,
       )
     }
@@ -52,8 +52,8 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
     return reply.code(200).send(chatflow)
   })
 
-  app.post('/api/v1/chatflows', async (request: FastifyRequest, reply) => {
-    const body = request.body as Partial<Chatflow> | null
+  app.post('/api/v1/chatflows', async (request: FastifyRequest<{ Body: Partial<Chatflow> }>, reply) => {
+    const { body } = request
 
     if (!body || typeof body !== 'object') {
       return sendError(reply, 500, 'Error: chatflowsService.saveChatflow - Request body is required')
@@ -62,7 +62,7 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
     if (!body.name || typeof body.name !== 'string' || body.name.trim().length === 0) {
       return sendError(
         reply,
-        500,
+        400,
         'Error: chatflowsService.saveChatflow - SQLITE_CONSTRAINT: NOT NULL constraint failed: chat_flow.name',
       )
     }
@@ -72,26 +72,29 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
     return reply.code(200).send(chatflow)
   })
 
-  app.put('/api/v1/chatflows/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
-    const { id } = request.params
-    const body = request.body as Partial<Chatflow> | null
+  app.put(
+    '/api/v1/chatflows/:id',
+    async (request: FastifyRequest<{ Params: IdParams; Body: Partial<Chatflow> }>, reply) => {
+      const { id } = request.params
+      const { body } = request
 
-    if (!isValidUUID(id)) {
-      return sendError(reply, 400, `Invalid chatflow id format: ${id}`)
-    }
+      if (!isValidUUID(id)) {
+        return sendError(reply, 400, `Invalid chatflow id format: ${id}`)
+      }
 
-    if (!body || typeof body !== 'object') {
-      return sendError(reply, 400, 'Request body is required')
-    }
+      if (!body || typeof body !== 'object') {
+        return sendError(reply, 400, 'Request body is required')
+      }
 
-    const updated = updateChatflow(id, body)
+      const updated = updateChatflow(id, body)
 
-    if (!updated) {
-      return sendError(reply, 404, `Chatflow ${id} not found`)
-    }
+      if (!updated) {
+        return sendError(reply, 404, `Chatflow ${id} not found`)
+      }
 
-    return reply.code(200).send(updated)
-  })
+      return reply.code(200).send(updated)
+    },
+  )
 
   app.delete('/api/v1/chatflows/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
     const { id } = request.params
@@ -106,7 +109,7 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
       return sendError(reply, 404, `Chatflow ${id} not found`)
     }
 
-    return reply.code(200).send({ deleted: true })
+    return reply.code(200).send({ raw: [], affected: 1 })
   })
 
   app.get('/api/v1/chatflows-streaming/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
@@ -133,7 +136,7 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
       const nodes = Array.isArray(flowData.nodes) ? flowData.nodes : []
       hasEndingNode = nodes.length > 0
     } catch {
-      // malformed JSON → no ending nodes
+      request.log.debug('Malformed flowData JSON in chatflow %s — treating as no ending nodes', id)
     }
 
     if (!hasEndingNode) {
@@ -162,7 +165,7 @@ export function registerChatflowRoutes(app: FastifyInstance): void {
     if (!chatflow) {
       return sendError(
         reply,
-        500,
+        404,
         `Error: chatflowsService.getChatflowById - Chatflow ${id} not found in the database!`,
       )
     }

@@ -10,6 +10,17 @@ interface AttachmentParams {
   chatId: string
 }
 
+/** Check whether a chatflow's flowData contains any nodes. */
+function chatflowHasNodes(flowDataJson: string | undefined): boolean {
+  try {
+    const flowData = JSON.parse(flowDataJson ?? '{}')
+    const nodes = Array.isArray(flowData.nodes) ? flowData.nodes : []
+    return nodes.length > 0
+  } catch {
+    return false
+  }
+}
+
 export function registerAttachmentRoutes(app: FastifyInstance): void {
   app.post(
     '/api/v1/attachments/:chatflowId/:chatId',
@@ -26,7 +37,20 @@ export function registerAttachmentRoutes(app: FastifyInstance): void {
 
       const chatflow = getChatflowById(chatflowId)
       if (!chatflow) {
-        return sendError(reply, 404, `Chatflow ${chatflowId} not found`)
+        return sendError(
+          reply,
+          500,
+          'Error: attachmentService.createAttachment - Invalid chatflowId format - must be a valid UUID',
+        )
+      }
+
+      // Flowise 3.0 rejects uploads when the chatflow has no file-handling nodes
+      if (!chatflowHasNodes(chatflow.flowData)) {
+        return sendError(
+          reply,
+          500,
+          'Error: attachmentService.createAttachment - File upload is not enabled for this chatflow',
+        )
       }
 
       const parts = request.parts()

@@ -18,7 +18,7 @@ interface ProfileBody {
 export function registerUserRoutes(app: FastifyInstance): void {
   // ── Get user profile ──────────────────────────────────────────────
   app.get('/api/v1/user', async (request: FastifyRequest<{ Querystring: UserQuery }>, reply) => {
-    const { id } = request.query as UserQuery
+    const { id } = request.query
 
     if (!id) {
       return sendError(reply, 400, 'User id is required')
@@ -41,8 +41,8 @@ export function registerUserRoutes(app: FastifyInstance): void {
   })
 
   // ── Update user profile or password ───────────────────────────────
-  app.put('/api/v1/user', async (request: FastifyRequest, reply) => {
-    const body = request.body as ProfileBody | null
+  app.put('/api/v1/user', async (request: FastifyRequest<{ Body: ProfileBody }>, reply) => {
+    const { body } = request
 
     if (!body || typeof body !== 'object') {
       return sendError(reply, 400, 'Request body is required')

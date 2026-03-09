@@ -16,7 +16,7 @@ describe('01 — Ping / Connectivity', () => {
   it('GET /ping returns "pong" body', async () => {
     const res = await client.get('/ping')
 
-    expect(res.text).toContain('pong')
+    expect(res.text).toBe('pong')
   })
 
   it('responds within reasonable time', async () => {

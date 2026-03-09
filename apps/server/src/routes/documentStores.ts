@@ -17,6 +17,11 @@ interface IdParams {
   id: string
 }
 
+interface DocumentStoreBody {
+  name: string
+  description?: string
+}
+
 // ── Static marketplace templates ─────────────────────────────────────
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -33,11 +38,10 @@ function loadTemplates(): unknown[] {
 
 export function registerDocumentStoreRoutes(app: FastifyInstance): void {
   // ── Document Store CRUD ────────────────────────────────────────────
-  // Note: Flowise uses /stores (plural) for list, /store (singular) for CRUD
 
-  app.get('/api/v1/document-store/stores', async (request: FastifyRequest<{ Querystring: PaginationQuery }>, reply) => {
+  app.get('/api/v1/document-store/store', async (request: FastifyRequest<{ Querystring: PaginationQuery }>, reply) => {
     const stores = getAllDocumentStores()
-    return reply.code(200).send(paginate(stores, request.query as PaginationQuery))
+    return reply.code(200).send(paginate(stores, request.query))
   })
 
   app.get('/api/v1/document-store/store/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
@@ -56,8 +60,8 @@ export function registerDocumentStoreRoutes(app: FastifyInstance): void {
     return reply.code(200).send(store)
   })
 
-  app.post('/api/v1/document-store/store', async (request: FastifyRequest, reply) => {
-    const body = request.body as Record<string, unknown> | null
+  app.post('/api/v1/document-store/store', async (request: FastifyRequest<{ Body: DocumentStoreBody }>, reply) => {
+    const { body } = request
 
     if (!body || typeof body !== 'object') {
       return sendError(reply, 400, 'Request body is required')
@@ -67,33 +71,33 @@ export function registerDocumentStoreRoutes(app: FastifyInstance): void {
       return sendError(reply, 400, 'Name is required')
     }
 
-    const store = createDocumentStore({
-      name: body.name as string,
-      description: (body.description as string) ?? undefined,
-    })
+    const store = createDocumentStore(body)
     return reply.code(200).send(store)
   })
 
-  app.put('/api/v1/document-store/store/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
-    const { id } = request.params
-    const body = request.body as Record<string, unknown> | null
+  app.put(
+    '/api/v1/document-store/store/:id',
+    async (request: FastifyRequest<{ Params: IdParams; Body: Partial<DocumentStoreBody> }>, reply) => {
+      const { id } = request.params
+      const { body } = request
 
-    if (!isValidUUID(id)) {
-      return sendError(reply, 400, `Invalid document store id format: ${id}`)
-    }
+      if (!isValidUUID(id)) {
+        return sendError(reply, 400, `Invalid document store id format: ${id}`)
+      }
 
-    if (!body || typeof body !== 'object') {
-      return sendError(reply, 400, 'Request body is required')
-    }
+      if (!body || typeof body !== 'object') {
+        return sendError(reply, 400, 'Request body is required')
+      }
 
-    const updated = updateDocumentStore(id, body as { name?: string; description?: string })
+      const updated = updateDocumentStore(id, body)
 
-    if (!updated) {
-      return sendError(reply, 404, `Document store ${id} not found`)
-    }
+      if (!updated) {
+        return sendError(reply, 404, `Document store ${id} not found`)
+      }
 
-    return reply.code(200).send(updated)
-  })
+      return reply.code(200).send(updated)
+    },
+  )
 
   app.delete('/api/v1/document-store/store/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
     const { id } = request.params

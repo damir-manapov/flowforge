@@ -44,8 +44,8 @@ export function registerAuthRoutes(app: FastifyInstance): void {
   })
 
   // ── Public: Register ──────────────────────────────────────────────
-  app.post('/api/v1/account/register', async (request: FastifyRequest, reply) => {
-    const body = request.body as RegisterBody | null
+  app.post('/api/v1/account/register', async (request: FastifyRequest<{ Body: RegisterBody }>, reply) => {
+    const { body } = request
 
     if (!body?.user) {
       return sendError(reply, 400, 'Request body must contain a user object')
@@ -66,8 +66,8 @@ export function registerAuthRoutes(app: FastifyInstance): void {
   })
 
   // ── Public: Login ─────────────────────────────────────────────────
-  app.post('/api/v1/auth/login', async (request: FastifyRequest, reply) => {
-    const body = request.body as LoginBody | null
+  app.post('/api/v1/auth/login', async (request: FastifyRequest<{ Body: LoginBody }>, reply) => {
+    const { body } = request
 
     if (!body?.email || !body?.password) {
       return sendError(reply, 400, 'email and password are required')
@@ -108,7 +108,7 @@ export function registerAuthRoutes(app: FastifyInstance): void {
 
   // ── Executions (stub — paginated empty list) ─────────────────────
   app.get('/api/v1/executions', async (request: FastifyRequest<{ Querystring: PaginationQuery }>, reply) => {
-    const query = request.query as PaginationQuery
+    const { query } = request
     if (query.page != null) {
       return reply.code(200).send({ data: [], total: 0 })
     }

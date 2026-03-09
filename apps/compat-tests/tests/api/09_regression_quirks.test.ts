@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { VALID_FLOW_DATA } from '../../src/fixtures.js'
 import { client, hasLLM, log } from '../../src/setup.js'
 
 describe('09 — Regression & Quirks', () => {
@@ -7,27 +8,28 @@ describe('09 — Regression & Quirks', () => {
 
     log.info('trailing slash response', { status: res.status })
 
-    // Should either succeed or redirect, not 500
-    expect(res.status).toBeLessThan(500)
+    // Both Express and Fastify (ignoreTrailingSlash) normalise /ping/ → /ping.
+    expect(res.status).toBe(200)
   })
 
   it('handles double slashes in path', async () => {
     const res = await client.get('//ping')
 
-    expect(res.status).toBeLessThan(500)
+    // Both Express and Fastify (ignoreDuplicateSlashes) normalise //ping → /ping.
+    expect(res.status).toBe(200)
   })
 
   it('GET on non-existent route does not crash', async () => {
     const res = await client.get('/nonexistent-route')
 
-    // Flowise returns 200 (SPA fallback), our reimpl returns 404
-    expect(res.status).toBeLessThan(500)
+    // Both targets serve an SPA fallback (200 with HTML) for unknown GET routes.
+    expect(res.status).toBe(200)
   })
 
   it.skipIf(!hasLLM)('handles very large JSON body gracefully', async () => {
     const createRes = await client.post('/chatflows', {
       name: 'large-body-flow',
-      flowData: '{"nodes":[],"edges":[]}',
+      flowData: VALID_FLOW_DATA,
       deployed: false,
       isPublic: false,
       apikeyid: '',
@@ -47,8 +49,8 @@ describe('09 — Regression & Quirks', () => {
         overrideConfig: largeOverride,
       })
 
-      // Should not crash - any response is acceptable as long as it's not a 5xx caused by our handling
-      expect(res.status).toBeLessThan(500)
+      // Both targets return 200 for valid prediction requests.
+      expect(res.status).toBe(200)
     } finally {
       await client.delete(`/chatflows/${chatflow.id}`)
     }

@@ -4,12 +4,14 @@ export default defineConfig({
   test: {
     globals: false,
     include: ['tests/**/*.test.ts'],
+    setupFiles: ['src/auth-setup.ts'],
     testTimeout: 30_000,
     hookTimeout: 15_000,
     passWithNoTests: true,
     sequence: {
       concurrent: false,
     },
+    fileParallelism: false,
     env: {
       ...(process.env.BASE_URL ? { BASE_URL: process.env.BASE_URL } : {}),
       ...(process.env.AUTH_TOKEN ? { AUTH_TOKEN: process.env.AUTH_TOKEN } : {}),
@@ -17,6 +19,8 @@ export default defineConfig({
       RECORD_GOLDENS: process.env.RECORD_GOLDENS ?? '0',
       ...(process.env.HAS_LLM ? { HAS_LLM: process.env.HAS_LLM } : {}),
       ...(process.env.DEEPSEEK_API_KEY ? { DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY } : {}),
+      ...(process.env.FF_EMAIL ? { FF_EMAIL: process.env.FF_EMAIL } : {}),
+      ...(process.env.FF_PASSWORD ? { FF_PASSWORD: process.env.FF_PASSWORD } : {}),
     },
   },
 })

@@ -36,17 +36,14 @@ describe('03 — Credentials CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = CredentialSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = CredentialSchema.parse(body)
 
-    if (parsed.success) {
-      createdId = parsed.data.id
-      expect(parsed.data.name).toBe('compat-test-cred')
-      expect(parsed.data.credentialName).toBe('openAIApi')
-      expect(parsed.data.encryptedData).toBeTruthy()
-      // encryptedData should NOT contain the plaintext key
-      expect(parsed.data.encryptedData).not.toContain('sk-test-compat-12345')
-    }
+    createdId = parsed.id
+    expect(parsed.name).toBe('compat-test-cred')
+    expect(parsed.credentialName).toBe('openAIApi')
+    expect(parsed.encryptedData).toBeTypeOf('string')
+    // encryptedData should NOT contain the plaintext key
+    expect(parsed.encryptedData).not.toContain('sk-test-compat-12345')
   })
 
   it('GET /credentials returns a list without encryptedData', async () => {
@@ -55,16 +52,13 @@ describe('03 — Credentials CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = CredentialListSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = CredentialListSchema.parse(body)
 
-    if (parsed.success) {
-      const found = parsed.data.find((c) => c.id === createdId)
-      expect(found).toBeDefined()
-      expect(found?.name).toBe('compat-test-cred')
-      // List should NOT have encryptedData
-      expect((found as Record<string, unknown>).encryptedData).toBeUndefined()
-    }
+    const found = parsed.find((c) => c.id === createdId)
+    expect(found).toBeDefined()
+    expect(found?.name).toBe('compat-test-cred')
+    // List should NOT have encryptedData
+    expect(found).not.toHaveProperty('encryptedData')
   })
 
   it('GET /credentials/:id returns decrypted+redacted data', async () => {
@@ -73,17 +67,14 @@ describe('03 — Credentials CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = CredentialWithPlainDataSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = CredentialWithPlainDataSchema.parse(body)
 
-    if (parsed.success) {
-      expect(parsed.data.name).toBe('compat-test-cred')
-      expect(parsed.data.plainDataObj).toBeDefined()
-      // Password field should be redacted
-      expect(parsed.data.plainDataObj.openAIApiKey).toBe(REDACTED)
-      // Should NOT have encryptedData
-      expect((parsed.data as Record<string, unknown>).encryptedData).toBeUndefined()
-    }
+    expect(parsed.name).toBe('compat-test-cred')
+    expect(parsed.plainDataObj).toBeDefined()
+    // Password field should be redacted
+    expect(parsed.plainDataObj.openAIApiKey).toBe(REDACTED)
+    // Should NOT have encryptedData
+    expect(parsed).not.toHaveProperty('encryptedData')
   })
 
   it('PUT /credentials/:id updates a credential', async () => {
@@ -98,14 +89,11 @@ describe('03 — Credentials CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = CredentialSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = CredentialSchema.parse(body)
 
-    if (parsed.success) {
-      expect(parsed.data.name).toBe('updated-cred')
-      expect(parsed.data.encryptedData).toBeTruthy()
-      expect(parsed.data.encryptedData).not.toContain('sk-updated-67890')
-    }
+    expect(parsed.name).toBe('updated-cred')
+    expect(parsed.encryptedData).toBeTypeOf('string')
+    expect(parsed.encryptedData).not.toContain('sk-updated-67890')
   })
 
   it('GET /credentials/:id after update shows new name', async () => {
@@ -125,11 +113,8 @@ describe('03 — Credentials CRUD', () => {
 
     const body = res.json()
 
-    const parsed = DeleteResultSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
-    if (parsed.success) {
-      expect(parsed.data.affected).toBe(1)
-    }
+    const parsed = DeleteResultSchema.parse(body)
+    expect(parsed.affected).toBe(1)
 
     // Mark as cleaned up
     createdId = ''
@@ -152,13 +137,9 @@ describe('03 — Components-Credentials Catalog', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = CredentialTypeListSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
-
-    if (parsed.success) {
-      expect(parsed.data.length).toBeGreaterThan(10)
-      log.info('components-credentials count', { count: parsed.data.length })
-    }
+    const parsed = CredentialTypeListSchema.parse(body)
+    expect(parsed.length).toBeGreaterThan(10)
+    log.info('components-credentials count', { count: parsed.length })
   })
 
   it('GET /components-credentials has openAIApi type', async () => {
@@ -176,14 +157,10 @@ describe('03 — Components-Credentials Catalog', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = CredentialTypeSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
-
-    if (parsed.success) {
-      expect(parsed.data.name).toBe('openAIApi')
-      expect(parsed.data.label).toBe('OpenAI API')
-      expect(parsed.data.inputs).toBeDefined()
-      expect(parsed.data.inputs?.some((i) => i.name === 'openAIApiKey')).toBe(true)
-    }
+    const parsed = CredentialTypeSchema.parse(body)
+    expect(parsed.name).toBe('openAIApi')
+    expect(parsed.label).toBe('OpenAI API')
+    expect(parsed.inputs).toBeDefined()
+    expect(parsed.inputs?.some((i) => i.name === 'openAIApiKey')).toBe(true)
   })
 })

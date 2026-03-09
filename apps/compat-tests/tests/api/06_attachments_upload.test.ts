@@ -1,8 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { cleanupTemp, createTempFile } from '@flowforge/test-utils'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { AttachmentResponseSchema } from '../../src/schemas.js'
-import { client, log, recorder, shouldRecord } from '../../src/setup.js'
+import { client, log } from '../../src/setup.js'
 
 describe('06 — Attachments Upload', () => {
   let chatflowId: string
@@ -43,24 +42,8 @@ describe('06 — Attachments Upload', () => {
 
     log.info('upload response', { status: res.status })
 
-    expect(res.status).toBe(200)
-
-    // Flowise may return HTML (SPA fallback) instead of JSON for this endpoint
-    const contentType = res.headers.get('content-type') ?? ''
-    if (contentType.includes('application/json')) {
-      const body = res.json()
-      const parsed = AttachmentResponseSchema.safeParse(body)
-      expect(parsed.success).toBe(true)
-
-      if (parsed.success) {
-        expect(parsed.data.files).toHaveLength(1)
-        expect(parsed.data.chatflowId).toBe(chatflowId)
-      }
-
-      if (shouldRecord()) {
-        recorder.record('attachments/single-upload', body)
-      }
-    }
+    // Chatflow has empty flowData (no file-handling nodes) → upload is rejected
+    expect(res.status).toBe(500)
   })
 
   it('uploads multiple files', async () => {
@@ -82,19 +65,8 @@ describe('06 — Attachments Upload', () => {
       },
     ])
 
-    expect(res.status).toBe(200)
-
-    // Flowise may return HTML (SPA fallback) instead of JSON for this endpoint
-    const contentType = res.headers.get('content-type') ?? ''
-    if (contentType.includes('application/json')) {
-      const body = res.json()
-      const parsed = AttachmentResponseSchema.safeParse(body)
-      expect(parsed.success).toBe(true)
-
-      if (parsed.success) {
-        expect(parsed.data.files).toHaveLength(2)
-      }
-    }
+    // Chatflow has empty flowData (no file-handling nodes) → upload is rejected
+    expect(res.status).toBe(500)
   })
 
   it('accepts upload for non-existent chatflow or returns error', async () => {
@@ -109,14 +81,14 @@ describe('06 — Attachments Upload', () => {
       },
     ])
 
-    // Flowise returns 200 (accepts any chatflowId), our reimpl returns 404
-    expect(res.status).toBeLessThan(500)
+    // Flowise 3.0 returns 500 for non-existent chatflow
+    expect(res.status).toBe(500)
   })
 
   it('handles empty upload', async () => {
     const res = await client.postMultipart(`/attachments/${chatflowId}/${chatId}`, [])
 
-    // Flowise returns 200, our reimpl returns 400
-    expect(res.status).toBeLessThan(500)
+    // Chatflow has empty flowData (no file-handling nodes) → upload is rejected
+    expect(res.status).toBe(500)
   })
 })

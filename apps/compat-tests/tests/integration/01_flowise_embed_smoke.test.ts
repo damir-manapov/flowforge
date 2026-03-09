@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { VALID_FLOW_DATA } from '../../src/fixtures.js'
 import { client, hasLLM, log, testConfig } from '../../src/setup.js'
 
 describe('Integration — Flowise Embed Smoke Test', () => {
@@ -13,7 +14,7 @@ describe('Integration — Flowise Embed Smoke Test', () => {
   it.skipIf(!hasLLM)('prediction endpoint accepts standard flowise-embed payload', async () => {
     const createRes = await client.post('/chatflows', {
       name: 'embed-smoke-flow',
-      flowData: '{"nodes":[],"edges":[]}',
+      flowData: VALID_FLOW_DATA,
       deployed: false,
       isPublic: false,
       apikeyid: '',
@@ -35,7 +36,7 @@ describe('Integration — Flowise Embed Smoke Test', () => {
       expect(res.status).toBe(200)
 
       const body = res.json<{ text: string }>()
-      expect(body.text).toBeTruthy()
+      expect(body.text).toBeTypeOf('string')
     } finally {
       await client.delete(`/chatflows/${chatflow.id}`)
     }
@@ -44,7 +45,7 @@ describe('Integration — Flowise Embed Smoke Test', () => {
   it.skipIf(!hasLLM)('streaming prediction works with flowise-embed payload format', async () => {
     const createRes = await client.post('/chatflows', {
       name: 'embed-stream-smoke',
-      flowData: '{"nodes":[],"edges":[]}',
+      flowData: VALID_FLOW_DATA,
       deployed: false,
       isPublic: false,
       apikeyid: '',

@@ -35,36 +35,30 @@ describe('13 — Document Store CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = DocumentStoreCreatedSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = DocumentStoreCreatedSchema.parse(body)
 
-    if (parsed.success) {
-      createdId = parsed.data.id
-      expect(parsed.data.name).toBe('compat-test-store')
-      expect(parsed.data.description).toBe('A test document store for compat testing')
-      expect(parsed.data.loaders).toBe('[]')
-      expect(parsed.data.whereUsed).toBe('[]')
-      expect(parsed.data.status).toBe('EMPTY')
-    }
+    createdId = parsed.id
+    expect(parsed.name).toBe('compat-test-store')
+    expect(parsed.description).toBe('A test document store for compat testing')
+    expect(parsed.loaders).toBe('[]')
+    expect(parsed.whereUsed).toBe('[]')
+    expect(parsed.status).toBe('EMPTY')
   })
 
-  it('GET /document-store/stores returns a list including the created store', async () => {
-    const res = await client.get('/document-store/stores')
+  it('GET /document-store/store returns a list including the created store', async () => {
+    const res = await client.get('/document-store/store')
 
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = DocumentStoreListSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = DocumentStoreListSchema.parse(body)
 
-    if (parsed.success) {
-      const found = parsed.data.find((s) => s.id === createdId)
-      expect(found).toBeDefined()
-      expect(found?.name).toBe('compat-test-store')
-      // List returns parsed arrays
-      expect(Array.isArray(found?.loaders)).toBe(true)
-      expect(Array.isArray(found?.whereUsed)).toBe(true)
-    }
+    const found = parsed.find((s) => s.id === createdId)
+    expect(found).toBeDefined()
+    expect(found?.name).toBe('compat-test-store')
+    // List returns parsed arrays
+    expect(Array.isArray(found?.loaders)).toBe(true)
+    expect(Array.isArray(found?.whereUsed)).toBe(true)
   })
 
   it('GET /document-store/store/:id returns the store with totals', async () => {
@@ -73,16 +67,13 @@ describe('13 — Document Store CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = DocumentStoreDetailSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = DocumentStoreDetailSchema.parse(body)
 
-    if (parsed.success) {
-      expect(parsed.data.name).toBe('compat-test-store')
-      expect(Array.isArray(parsed.data.loaders)).toBe(true)
-      expect(Array.isArray(parsed.data.whereUsed)).toBe(true)
-      expect(typeof parsed.data.totalChars).toBe('number')
-      expect(typeof parsed.data.totalChunks).toBe('number')
-    }
+    expect(parsed.name).toBe('compat-test-store')
+    expect(Array.isArray(parsed.loaders)).toBe(true)
+    expect(Array.isArray(parsed.whereUsed)).toBe(true)
+    expect(parsed.totalChars).toBeTypeOf('number')
+    expect(parsed.totalChunks).toBeTypeOf('number')
   })
 
   it('PUT /document-store/store/:id updates the store', async () => {
@@ -95,13 +86,10 @@ describe('13 — Document Store CRUD', () => {
 
     const body = res.json()
     // Update returns the detail shape (parsed arrays + totals)
-    const parsed = DocumentStoreDetailSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = DocumentStoreDetailSchema.parse(body)
 
-    if (parsed.success) {
-      expect(parsed.data.name).toBe('compat-test-store-updated')
-      expect(parsed.data.description).toBe('Updated description')
-    }
+    expect(parsed.name).toBe('compat-test-store-updated')
+    expect(parsed.description).toBe('Updated description')
   })
 
   it('DELETE /document-store/store/:id deletes the store', async () => {
@@ -110,12 +98,8 @@ describe('13 — Document Store CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = DocumentStoreDeleteResultSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
-
-    if (parsed.success) {
-      expect(parsed.data.deleted).toBe(1)
-    }
+    const parsed = DocumentStoreDeleteResultSchema.parse(body)
+    expect(parsed.deleted).toBe(1)
 
     // Clear the id so afterAll won't attempt double-delete
     createdId = ''
@@ -134,8 +118,7 @@ describe('13 — Marketplace Templates', () => {
     expect(Array.isArray(body)).toBe(true)
     expect(body.length).toBeGreaterThan(0)
 
-    const parsed = MarketplaceTemplateListSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    MarketplaceTemplateListSchema.parse(body)
   })
 
   it('each marketplace template has the correct shape', async () => {
@@ -144,13 +127,12 @@ describe('13 — Marketplace Templates', () => {
 
     // Validate first template in detail
     const first = body[0]
-    const parsed = MarketplaceTemplateSchema.safeParse(first)
-    expect(parsed.success).toBe(true)
+    const parsed = MarketplaceTemplateSchema.parse(first)
 
-    if (parsed.success) {
-      expect(typeof parsed.data.id).toBe('number')
-      expect(typeof parsed.data.templateName).toBe('string')
-      expect(typeof parsed.data.flowData).toBe('string')
+    expect(parsed.id).toBeTypeOf('string')
+    expect(parsed.templateName).toBeTypeOf('string')
+    if (parsed.flowData !== undefined) {
+      expect(parsed.flowData).toBeTypeOf('string')
     }
   })
 })

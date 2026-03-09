@@ -60,7 +60,6 @@ describe('nodeRegistry', () => {
     )
 
     // ChatOpenAI is an object with known properties
-    expect(instance).toBeDefined()
     expect(instance).toHaveProperty('model', 'deepseek-chat')
   })
 
@@ -72,7 +71,6 @@ describe('nodeRegistry', () => {
       inputs: { memoryKey: 'chat_history', sessionId: '' },
     })
 
-    expect(instance).toBeDefined()
     expect(instance).toHaveProperty('memoryKey', 'chat_history')
     expect(instance).toHaveProperty('getMessages')
     expect(instance).toHaveProperty('addMessage')

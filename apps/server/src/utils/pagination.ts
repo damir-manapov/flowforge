@@ -2,7 +2,7 @@
  * Pagination utility — content negotiation.
  *
  * If `?page=` is present in the query, returns `{ data: [...], total }`.
- * Otherwise returns the bare array for backward compat with Flowise 1.8.4 tests.
+ * Otherwise returns the bare array (Flowise default for non-paginated requests).
  */
 
 export interface PaginationQuery {
@@ -18,7 +18,7 @@ export interface PaginatedResponse<T> {
 /** Apply pagination and return the appropriate response shape. */
 export function paginate<T>(items: T[], query: PaginationQuery): T[] | PaginatedResponse<T> {
   if (query.page == null) {
-    // No pagination requested — return bare array (1.8.4 compat)
+    // No pagination requested — return bare array
     return items
   }
 

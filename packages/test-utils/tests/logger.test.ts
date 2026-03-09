@@ -3,10 +3,10 @@ import { logger } from '../src/logger.js'
 
 describe('logger', () => {
   it('has debug, info, warn, error methods', () => {
-    expect(typeof logger.debug).toBe('function')
-    expect(typeof logger.info).toBe('function')
-    expect(typeof logger.warn).toBe('function')
-    expect(typeof logger.error).toBe('function')
+    expect(logger.debug).toBeTypeOf('function')
+    expect(logger.info).toBeTypeOf('function')
+    expect(logger.warn).toBeTypeOf('function')
+    expect(logger.error).toBeTypeOf('function')
   })
 
   it('info logs to console.info', () => {

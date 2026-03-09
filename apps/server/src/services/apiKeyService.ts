@@ -10,14 +10,9 @@ import {
 export type { ApiKey } from '../storage/apiKeyStore.js'
 export { clearApiKeyStore, getApiKeyById } from '../storage/apiKeyStore.js'
 
-/** Format date as DD-MMM-YY (matches Flowise moment format). */
+/** Format date as ISO string (matches Flowise 3.0 updatedDate format). */
 function formatDate(): string {
-  const d = new Date()
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  const day = String(d.getDate()).padStart(2, '0')
-  const month = months[d.getMonth()] as string
-  const year = String(d.getFullYear()).slice(-2)
-  return `${day}-${month}-${year}`
+  return new Date().toISOString()
 }
 
 /** Generate a random API key (32 bytes, base64url encoded). */
@@ -41,7 +36,7 @@ export function getAllApiKeys(): ApiKey[] {
 }
 
 /** Create a new API key. Returns the full array of all keys. */
-export function createApiKey(keyName: string): ApiKey[] {
+export function createApiKey(keyName: string, permissions: string[] = []): ApiKey[] {
   const id = randomBytes(16).toString('hex')
   const apiKey = generateApiKey()
   const apiSecret = generateApiSecret(apiKey)
@@ -51,7 +46,8 @@ export function createApiKey(keyName: string): ApiKey[] {
     keyName,
     apiKey,
     apiSecret,
-    createdAt: formatDate(),
+    updatedDate: formatDate(),
+    permissions,
     chatFlows: [],
   }
 
@@ -73,8 +69,8 @@ export function updateApiKey(id: string, keyName: string): ApiKey[] | undefined 
   return getAllApiKeys()
 }
 
-/** Delete an API key. Returns the full array of remaining keys. */
-export function deleteApiKey(id: string): ApiKey[] {
-  deleteFromStore(id)
-  return getAllApiKeys()
+/** Delete an API key. Returns { raw: [], affected: count }. */
+export function deleteApiKey(id: string): { raw: unknown[]; affected: number } {
+  const deleted = deleteFromStore(id)
+  return { raw: [], affected: deleted ? 1 : 0 }
 }

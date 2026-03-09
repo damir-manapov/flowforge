@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { VALID_FLOW_DATA } from '../../src/fixtures.js'
 import { PredictionResponseSchema } from '../../src/schemas.js'
 import { client, hasLLM, log, recorder, shouldRecord } from '../../src/setup.js'
 
@@ -8,7 +9,7 @@ describe.skipIf(!hasLLM)('03 — Prediction (non-streaming)', () => {
   beforeAll(async () => {
     const res = await client.post('/chatflows', {
       name: 'prediction-test-flow',
-      flowData: '{"nodes":[],"edges":[]}',
+      flowData: VALID_FLOW_DATA,
       deployed: false,
       isPublic: false,
       apikeyid: '',
@@ -36,14 +37,10 @@ describe.skipIf(!hasLLM)('03 — Prediction (non-streaming)', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = PredictionResponseSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
-
-    if (parsed.success) {
-      expect(parsed.data.text).toBeTruthy()
-      expect(parsed.data.question).toBe('Hello, how are you?')
-      expect(parsed.data.chatId).toBeTruthy()
-    }
+    const parsed = PredictionResponseSchema.parse(body)
+    expect(parsed.text).toBeTypeOf('string')
+    expect(parsed.question).toBe('Hello, how are you?')
+    expect(parsed.chatId).toBeTypeOf('string')
 
     if (shouldRecord()) {
       recorder.record('prediction/nonstream', body)

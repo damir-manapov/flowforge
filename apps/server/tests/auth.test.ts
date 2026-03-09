@@ -66,7 +66,7 @@ describe('auth routes (inject)', () => {
       const res = await app.inject({ method: 'GET', url: '/api/v1/version' })
       expect(res.statusCode).toBe(200)
       const body = JSON.parse(res.body)
-      expect(body.version).toBeDefined()
+      expect(body.version).toBeTypeOf('string')
     })
   })
 
@@ -114,7 +114,7 @@ describe('auth routes (inject)', () => {
       })
 
       const cookie = loginRes.headers['set-cookie'] as string
-      expect(cookie).toBeDefined()
+      expect(cookie).toBeTypeOf('string')
 
       const resolveRes = await app.inject({
         method: 'POST',
@@ -141,7 +141,7 @@ describe('auth routes (inject)', () => {
       expect(body.user.name).toBe('Admin')
       expect(body.user.email).toBe('admin@test.com')
       expect(body.user.status).toBe('active')
-      expect(body.user.id).toBeDefined()
+      expect(body.user.id).toBeTypeOf('string')
       // Should NOT include password hash
       expect(body.user.passwordHash).toBeUndefined()
     })
@@ -201,9 +201,9 @@ describe('auth routes (inject)', () => {
       const body = JSON.parse(res.body)
       expect(body.email).toBe('test@test.com')
       expect(body.name).toBe('Test')
-      expect(body.id).toBeDefined()
-      expect(body.roleId).toBeDefined()
-      expect(body.activeWorkspaceId).toBeDefined()
+      expect(body.id).toBeTypeOf('string')
+      expect(body.roleId).toBeTypeOf('string')
+      expect(body.activeWorkspaceId).toBeTypeOf('string')
       expect(body.permissions).toEqual(['organization', 'workspace'])
       expect(body.isOrganizationAdmin).toBe(true)
 

@@ -25,7 +25,7 @@ describe('07 — Auth & Headers', () => {
     const authClient = new HttpClient(testConfig.baseUrl, testConfig.authToken)
     const res = await authClient.get('/chatflows')
 
-    expect(res.headers.get('content-type')).toBeTruthy()
+    expect(res.headers.get('content-type')).toContain('application/json')
   })
 
   it('handles missing auth gracefully for public endpoints', async () => {

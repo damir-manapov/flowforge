@@ -58,7 +58,7 @@ export function registerCredentialRoutes(app: FastifyInstance): void {
     async (request: FastifyRequest<{ Querystring: { credentialName?: string } }>, reply) => {
       let credentials = getAllCredentials()
 
-      const { credentialName } = request.query as { credentialName?: string }
+      const { credentialName } = request.query
       if (credentialName) {
         credentials = credentials.filter((c) => c.credentialName === credentialName)
       }
@@ -84,8 +84,8 @@ export function registerCredentialRoutes(app: FastifyInstance): void {
     return reply.code(200).send(credential)
   })
 
-  app.post('/api/v1/credentials', async (request: FastifyRequest, reply) => {
-    const body = request.body as CredentialBody | null
+  app.post('/api/v1/credentials', async (request: FastifyRequest<{ Body: CredentialBody }>, reply) => {
+    const { body } = request
 
     if (!body || typeof body !== 'object') {
       return sendError(reply, 400, 'Request body is required')
@@ -103,26 +103,29 @@ export function registerCredentialRoutes(app: FastifyInstance): void {
     return reply.code(200).send(credential)
   })
 
-  app.put('/api/v1/credentials/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
-    const { id } = request.params
-    const body = request.body as CredentialBody | null
+  app.put(
+    '/api/v1/credentials/:id',
+    async (request: FastifyRequest<{ Params: IdParams; Body: CredentialBody }>, reply) => {
+      const { id } = request.params
+      const { body } = request
 
-    if (!isValidUUID(id)) {
-      return sendError(reply, 400, `Invalid credential id format: ${id}`)
-    }
+      if (!isValidUUID(id)) {
+        return sendError(reply, 400, `Invalid credential id format: ${id}`)
+      }
 
-    if (!body || typeof body !== 'object') {
-      return sendError(reply, 400, 'Request body is required')
-    }
+      if (!body || typeof body !== 'object') {
+        return sendError(reply, 400, 'Request body is required')
+      }
 
-    const updated = updateCredential(id, body)
+      const updated = updateCredential(id, body)
 
-    if (!updated) {
-      return sendError(reply, 404, `Credential ${id} not found`)
-    }
+      if (!updated) {
+        return sendError(reply, 404, `Credential ${id} not found`)
+      }
 
-    return reply.code(200).send(updated)
-  })
+      return reply.code(200).send(updated)
+    },
+  )
 
   app.delete('/api/v1/credentials/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
     const { id } = request.params

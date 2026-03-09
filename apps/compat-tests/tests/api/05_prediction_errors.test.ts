@@ -10,8 +10,7 @@ describe('05 — Prediction Errors', () => {
 
     log.info('prediction 404 response', { status: res.status })
 
-    // Both return 500 for non-existent chatflow
-    expect(res.status).toBe(500)
+    expect(res.status).toBe(404)
   })
 
   it('returns error for empty question', async () => {
@@ -31,7 +30,8 @@ describe('05 — Prediction Errors', () => {
         streaming: false,
       })
 
-      expect(res.status).toBeGreaterThanOrEqual(400)
+      // Empty graph — Flowise validates graph structure before reading the question.
+      expect(res.status).toBe(500)
     } finally {
       await client.delete(`/chatflows/${chatflow.id}`)
     }
@@ -53,7 +53,8 @@ describe('05 — Prediction Errors', () => {
         streaming: false,
       })
 
-      expect(res.status).toBeGreaterThanOrEqual(400)
+      // Empty graph — Flowise validates graph structure before reading the question.
+      expect(res.status).toBe(500)
     } finally {
       await client.delete(`/chatflows/${chatflow.id}`)
     }
@@ -73,7 +74,7 @@ describe('05 — Prediction Errors', () => {
     try {
       const res = await client.postRaw(`/prediction/${chatflow.id}`, 'not valid json{{{', 'application/json')
 
-      expect(res.status).toBeGreaterThanOrEqual(400)
+      expect(res.status).toBe(400)
     } finally {
       await client.delete(`/chatflows/${chatflow.id}`)
     }
@@ -93,7 +94,8 @@ describe('05 — Prediction Errors', () => {
     try {
       const res = await client.postRaw(`/prediction/${chatflow.id}`, '<xml>not json</xml>', 'text/xml')
 
-      expect(res.status).toBeGreaterThanOrEqual(400)
+      // Empty graph — Flowise validates graph structure before parsing the body.
+      expect(res.status).toBe(500)
     } finally {
       await client.delete(`/chatflows/${chatflow.id}`)
     }
@@ -105,6 +107,6 @@ describe('05 — Prediction Errors', () => {
       streaming: false,
     })
 
-    expect(res.status).toBeGreaterThanOrEqual(400)
+    expect(res.status).toBe(400)
   })
 })

@@ -23,8 +23,8 @@ interface ExportBody {
 
 export function registerExportImportRoutes(app: FastifyInstance): void {
   // ── Export ─────────────────────────────────────────────────────────
-  app.post('/api/v1/export-import/export', async (request: FastifyRequest, reply) => {
-    const body = (request.body ?? {}) as ExportBody
+  app.post('/api/v1/export-import/export', async (request: FastifyRequest<{ Body: ExportBody }>, reply) => {
+    const body = request.body ?? ({} as ExportBody)
 
     const result: Record<string, unknown> = {
       FileDefaultName: 'ExportData.json',

@@ -182,7 +182,6 @@ describe('buildFlow overrideConfig', () => {
 
     const instances = await buildFlow(flow, { sessionId: 'my-custom-session' })
     const mem = instances.get('mem_0') as { memoryKey: string }
-    expect(mem).toBeDefined()
     expect(mem.memoryKey).toBe('chat_history')
   })
 

@@ -8,10 +8,19 @@ interface IdParams {
   id: string
 }
 
+interface ToolBody {
+  name: string
+  description?: string
+  color?: string
+  iconSrc?: string | null
+  schema?: string | null
+  func?: string | null
+}
+
 export function registerToolRoutes(app: FastifyInstance): void {
   app.get('/api/v1/tools', async (request: FastifyRequest<{ Querystring: PaginationQuery }>, reply) => {
     const tools = getAllTools()
-    return reply.code(200).send(paginate(tools, request.query as PaginationQuery))
+    return reply.code(200).send(paginate(tools, request.query))
   })
 
   app.get('/api/v1/tools/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
@@ -30,8 +39,8 @@ export function registerToolRoutes(app: FastifyInstance): void {
     return reply.code(200).send(tool)
   })
 
-  app.post('/api/v1/tools', async (request: FastifyRequest, reply) => {
-    const body = request.body as Record<string, unknown> | null
+  app.post('/api/v1/tools', async (request: FastifyRequest<{ Body: ToolBody }>, reply) => {
+    const { body } = request
 
     if (!body || typeof body !== 'object') {
       return sendError(reply, 400, 'Request body is required')
@@ -42,36 +51,39 @@ export function registerToolRoutes(app: FastifyInstance): void {
     }
 
     const tool = createTool({
-      name: body.name as string,
-      description: (body.description as string) ?? '',
-      color: (body.color as string) ?? '#000',
-      iconSrc: (body.iconSrc as string | null) ?? null,
-      schema: (body.schema as string | null) ?? null,
-      func: (body.func as string | null) ?? null,
+      name: body.name,
+      description: body.description ?? '',
+      color: body.color ?? '#000',
+      iconSrc: body.iconSrc ?? null,
+      schema: body.schema ?? null,
+      func: body.func ?? null,
     })
     return reply.code(200).send(tool)
   })
 
-  app.put('/api/v1/tools/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
-    const { id } = request.params
-    const body = request.body as Record<string, unknown> | null
+  app.put(
+    '/api/v1/tools/:id',
+    async (request: FastifyRequest<{ Params: IdParams; Body: Partial<ToolBody> }>, reply) => {
+      const { id } = request.params
+      const { body } = request
 
-    if (!isValidUUID(id)) {
-      return sendError(reply, 400, `Invalid tool id format: ${id}`)
-    }
+      if (!isValidUUID(id)) {
+        return sendError(reply, 400, `Invalid tool id format: ${id}`)
+      }
 
-    if (!body || typeof body !== 'object') {
-      return sendError(reply, 400, 'Request body is required')
-    }
+      if (!body || typeof body !== 'object') {
+        return sendError(reply, 400, 'Request body is required')
+      }
 
-    const updated = updateTool(id, body as Record<string, string>)
+      const updated = updateTool(id, body)
 
-    if (!updated) {
-      return sendError(reply, 404, `Tool ${id} not found`)
-    }
+      if (!updated) {
+        return sendError(reply, 404, `Tool ${id} not found`)
+      }
 
-    return reply.code(200).send(updated)
-  })
+      return reply.code(200).send(updated)
+    },
+  )
 
   app.delete('/api/v1/tools/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
     const { id } = request.params

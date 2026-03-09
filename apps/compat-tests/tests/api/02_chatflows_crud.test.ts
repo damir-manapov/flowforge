@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { ChatflowListSchema, ChatflowSchema, ErrorResponseSchema } from '../../src/schemas.js'
+import { ChatflowListSchema, ChatflowSchema, DeleteResultSchema, ErrorResponseSchema } from '../../src/schemas.js'
 import { client, log, recorder, shouldRecord } from '../../src/setup.js'
 
 describe('02 — Chatflows CRUD', () => {
@@ -30,16 +30,13 @@ describe('02 — Chatflows CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = ChatflowSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    const parsed = ChatflowSchema.parse(body)
 
-    if (parsed.success) {
-      createdId = parsed.data.id
-      expect(parsed.data.name).toBe('compat-test-flow')
+    createdId = parsed.id
+    expect(parsed.name).toBe('compat-test-flow')
 
-      if (shouldRecord()) {
-        recorder.record('chatflows/create', body)
-      }
+    if (shouldRecord()) {
+      recorder.record('chatflows/create', body)
     }
   })
 
@@ -49,8 +46,7 @@ describe('02 — Chatflows CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = ChatflowListSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    ChatflowListSchema.parse(body)
 
     if (shouldRecord()) {
       recorder.record('chatflows/list', body)
@@ -65,12 +61,8 @@ describe('02 — Chatflows CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = ChatflowSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
-
-    if (parsed.success) {
-      expect(parsed.data.id).toBe(createdId)
-    }
+    const parsed = ChatflowSchema.parse(body)
+    expect(parsed.id).toBe(createdId)
 
     if (shouldRecord()) {
       recorder.record('chatflows/get', body)
@@ -87,12 +79,8 @@ describe('02 — Chatflows CRUD', () => {
     expect(res.status).toBe(200)
 
     const body = res.json()
-    const parsed = ChatflowSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
-
-    if (parsed.success) {
-      expect(parsed.data.name).toBe('compat-test-flow-updated')
-    }
+    const parsed = ChatflowSchema.parse(body)
+    expect(parsed.name).toBe('compat-test-flow-updated')
 
     if (shouldRecord()) {
       recorder.record('chatflows/update', body)
@@ -116,6 +104,7 @@ describe('02 — Chatflows CRUD', () => {
   it('GET /chatflows-streaming/:id returns error for missing id', async () => {
     const res = await client.get('/chatflows-streaming/00000000-0000-0000-0000-000000000000')
 
+    // Flowise 3.0 returns 500 for non-existent streaming chatflow
     expect(res.status).toBe(500)
   })
 
@@ -125,6 +114,9 @@ describe('02 — Chatflows CRUD', () => {
     const res = await client.delete(`/chatflows/${createdId}`)
 
     expect(res.status).toBe(200)
+
+    const body = res.json()
+    DeleteResultSchema.parse(body)
 
     createdId = ''
 
@@ -136,12 +128,10 @@ describe('02 — Chatflows CRUD', () => {
   it('GET /chatflows/:id returns error for missing id', async () => {
     const res = await client.get('/chatflows/00000000-0000-0000-0000-000000000000')
 
-    // Both return 500 for missing chatflow
-    expect(res.status).toBe(500)
+    expect(res.status).toBe(404)
 
     const body = res.json()
-    const parsed = ErrorResponseSchema.safeParse(body)
-    expect(parsed.success).toBe(true)
+    ErrorResponseSchema.parse(body)
   })
 
   it('POST /chatflows with missing name returns error', async () => {
@@ -149,7 +139,6 @@ describe('02 — Chatflows CRUD', () => {
       flowData: '{"nodes":[],"edges":[]}',
     })
 
-    // Both return 500 for missing required fields
-    expect(res.status).toBe(500)
+    expect(res.status).toBe(400)
   })
 })

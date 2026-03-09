@@ -36,6 +36,11 @@ export async function buildServer() {
     },
     bodyLimit: Number(process.env.BODY_LIMIT ?? 2 * 1024 * 1024),
     genReqId: () => randomUUID(),
+    // Match Express behaviour: normalise /ping/ → /ping and //ping → /ping
+    routerOptions: {
+      ignoreTrailingSlash: true,
+      ignoreDuplicateSlashes: true,
+    },
   })
 
   await app.register(fastifyCors, { origin: parseCorsOrigin() })
@@ -55,16 +60,37 @@ export async function buildServer() {
     },
   })
 
+  // Accept unknown content types (e.g. text/xml) so requests reach route
+  // handlers instead of being rejected with 415 by Fastify's built-in
+  // content-type parser.  Flowise (Express) never rejects on content type —
+  // the request reaches the handler where graph validation returns 500.
+  app.addContentTypeParser('*', (_request, payload, done) => {
+    let data = ''
+    payload.on('data', (chunk: Buffer) => {
+      data += chunk.toString()
+    })
+    payload.on('end', () => {
+      try {
+        done(null, data ? JSON.parse(data) : null)
+      } catch {
+        // Not valid JSON — pass raw string so handler gets *something*
+        done(null, data)
+      }
+    })
+  })
+
   app.setErrorHandler<FastifyError>((error, request, reply) => {
     const code = error.statusCode ?? 500
     if (code >= 500) {
       request.log.error(error)
     }
+    // Match Flowise InternalFlowiseError shape: { statusCode, success, message, stack }
     const msg = error.message ?? 'Something went wrong'
     reply.status(code).send({
       statusCode: code,
-      error: code < 500 ? msg : 'Internal Server Error',
-      message: code < 500 ? msg : 'Something went wrong',
+      success: false,
+      message: msg,
+      stack: {},
     })
   })
 
@@ -83,11 +109,21 @@ export async function buildServer() {
   registerDocumentStoreRoutes(app)
   registerExportImportRoutes(app)
 
-  app.setNotFoundHandler((_req, reply) => {
+  // Flowise (Express) serves index.html for any unknown GET route (SPA
+  // fallback).  Match that behaviour so compat tests see the same 200.
+  app.setNotFoundHandler((req, reply) => {
+    if (req.method === 'GET') {
+      reply
+        .status(200)
+        .type('text/html')
+        .send('<!DOCTYPE html><html><head><title>FlowForge</title></head><body></body></html>')
+      return
+    }
     reply.status(404).send({
       statusCode: 404,
-      error: 'Not Found',
+      success: false,
       message: 'Route not found',
+      stack: {},
     })
   })
 

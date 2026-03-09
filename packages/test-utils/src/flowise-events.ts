@@ -24,9 +24,10 @@ export function parseFlowiseEvents(sseEvents: Pick<SSEEvent, 'data'>[]): Flowise
   for (const e of sseEvents) {
     if (!e.data) continue
     try {
-      const parsed = JSON.parse(e.data) as { event?: string; data?: string }
+      const parsed = JSON.parse(e.data) as { event?: string; data?: unknown }
       if (parsed.event) {
-        out.push({ event: parsed.event, data: parsed.data ?? '' })
+        const d = parsed.data ?? ''
+        out.push({ event: parsed.event, data: typeof d === 'string' ? d : JSON.stringify(d) })
       }
     } catch {
       // non-JSON data lines (keepalives, etc.) — skip

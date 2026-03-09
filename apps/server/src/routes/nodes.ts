@@ -30,9 +30,17 @@ export function registerNodeRoutes(app: FastifyInstance): void {
   })
 
   app.get('/api/v1/node-icon/:name', async (request: FastifyRequest<{ Params: IconParams }>, reply) => {
-    // Stub: return 404 for now. Icons will be served from flowise-components in Step 5.
-    return reply
-      .code(404)
-      .send({ statusCode: 404, error: 'Not Found', message: `Icon ${request.params.name} not found` })
+    const nodes = loadNodes() as Array<{ name: string; icon?: string }>
+    const node = nodes.find((n) => n.name === request.params.name)
+    if (!node?.icon) {
+      return reply
+        .code(404)
+        .send({ statusCode: 404, error: 'Not Found', message: `Icon ${request.params.name} not found` })
+    }
+
+    // Serve a minimal placeholder SVG.  Real Flowise reads the file from
+    // flowise-components; we don't ship those assets so return a stub.
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" fill="#ccc"/></svg>`
+    return reply.code(200).type('image/svg+xml').send(svg)
   })
 }

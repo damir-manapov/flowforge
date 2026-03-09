@@ -75,7 +75,7 @@ export function registerAssistantRoutes(app: FastifyInstance): void {
   // ── List assistants ────────────────────────────────────────────────
   app.get('/api/v1/assistants', async (request: FastifyRequest<{ Querystring: AssistantListQuery }>, reply) => {
     let assistants = getAllAssistants()
-    const query = request.query as AssistantListQuery
+    const { query } = request
 
     // Filter by type (CUSTOM, OPENAI, AZURE) if specified
     if (query.type) {
@@ -84,6 +84,7 @@ export function registerAssistantRoutes(app: FastifyInstance): void {
           const details = JSON.parse(a.details || '{}') as { type?: string }
           return details.type === query.type
         } catch {
+          request.log.debug('Malformed assistant details JSON for assistant %s', a.id)
           return false
         }
       })
@@ -108,8 +109,8 @@ export function registerAssistantRoutes(app: FastifyInstance): void {
     return reply.code(200).send(assistant)
   })
 
-  app.post('/api/v1/assistants', async (request: FastifyRequest, reply) => {
-    const body = request.body as AssistantBody | null
+  app.post('/api/v1/assistants', async (request: FastifyRequest<{ Body: AssistantBody }>, reply) => {
+    const { body } = request
 
     if (!body || typeof body !== 'object') {
       return sendError(reply, 400, 'Request body is required')
@@ -127,26 +128,29 @@ export function registerAssistantRoutes(app: FastifyInstance): void {
     return reply.code(200).send(assistant)
   })
 
-  app.put('/api/v1/assistants/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
-    const { id } = request.params
-    const body = request.body as Partial<AssistantBody> | null
+  app.put(
+    '/api/v1/assistants/:id',
+    async (request: FastifyRequest<{ Params: IdParams; Body: Partial<AssistantBody> }>, reply) => {
+      const { id } = request.params
+      const { body } = request
 
-    if (!isValidUUID(id)) {
-      return sendError(reply, 400, `Invalid assistant id format: ${id}`)
-    }
+      if (!isValidUUID(id)) {
+        return sendError(reply, 400, `Invalid assistant id format: ${id}`)
+      }
 
-    if (!body || typeof body !== 'object') {
-      return sendError(reply, 400, 'Request body is required')
-    }
+      if (!body || typeof body !== 'object') {
+        return sendError(reply, 400, 'Request body is required')
+      }
 
-    const updated = updateAssistant(id, body)
+      const updated = updateAssistant(id, body)
 
-    if (!updated) {
-      return sendError(reply, 404, `Assistant ${id} not found`)
-    }
+      if (!updated) {
+        return sendError(reply, 404, `Assistant ${id} not found`)
+      }
 
-    return reply.code(200).send(updated)
-  })
+      return reply.code(200).send(updated)
+    },
+  )
 
   app.delete('/api/v1/assistants/:id', async (request: FastifyRequest<{ Params: IdParams }>, reply) => {
     const { id } = request.params

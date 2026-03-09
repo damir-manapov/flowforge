@@ -46,9 +46,9 @@ describe('predictionService', () => {
   describe('getStubTokens', () => {
     it('returns an array of string tokens', () => {
       const tokens = getStubTokens()
-      expect(tokens.length).toBeGreaterThan(0)
+      expect(tokens.length).toBe(7)
       for (const t of tokens) {
-        expect(typeof t).toBe('string')
+        expect(t).toBeTypeOf('string')
       }
     })
 

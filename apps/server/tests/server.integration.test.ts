@@ -7,6 +7,7 @@ import { clearDocumentStoreStore } from '../src/storage/documentStoreStore.js'
 import { clearStore } from '../src/storage/inMemoryStore.js'
 import { clearToolStore } from '../src/storage/toolStore.js'
 import { clearVariableStore } from '../src/storage/variableStore.js'
+import { VALID_FLOW_DATA } from './_helpers/fixtures.js'
 
 function clearAllStores(): void {
   clearStore()
@@ -42,12 +43,19 @@ describe('server integration (inject)', () => {
   })
 
   describe('not-found handler', () => {
-    it('returns structured 404 for unknown route', async () => {
+    it('returns 200 HTML for unknown GET route (SPA fallback)', async () => {
       const res = await app.inject({ method: 'GET', url: '/api/v1/nonexistent' })
+      expect(res.statusCode).toBe(200)
+      expect(res.headers['content-type']).toContain('text/html')
+    })
+
+    it('returns structured 404 for unknown non-GET route', async () => {
+      const res = await app.inject({ method: 'POST', url: '/api/v1/nonexistent' })
       expect(res.statusCode).toBe(404)
       const body = JSON.parse(res.body)
       expect(body.statusCode).toBe(404)
-      expect(body.error).toBe('Not Found')
+      expect(body.success).toBe(false)
+      expect(body.message).toBe('Route not found')
     })
   })
 
@@ -62,7 +70,8 @@ describe('server integration (inject)', () => {
       expect(res.statusCode).toBe(400)
       const body = JSON.parse(res.body)
       expect(body.statusCode).toBe(400)
-      expect(body.error).toBeDefined()
+      expect(body.success).toBe(false)
+      expect(body.message).toBeTypeOf('string')
     })
   })
 
@@ -76,7 +85,7 @@ describe('server integration (inject)', () => {
       expect(create.statusCode).toBe(200)
       const chatflow = JSON.parse(create.body)
       expect(chatflow.name).toBe('test-flow')
-      expect(chatflow.id).toBeDefined()
+      expect(chatflow.id).toBeTypeOf('string')
 
       const get = await app.inject({ method: 'GET', url: `/api/v1/chatflows/${chatflow.id}` })
       expect(get.statusCode).toBe(200)
@@ -88,12 +97,12 @@ describe('server integration (inject)', () => {
       expect(res.statusCode).toBe(400)
     })
 
-    it('returns 500 for non-existent chatflow', async () => {
+    it('returns 404 for non-existent chatflow', async () => {
       const res = await app.inject({
         method: 'GET',
         url: '/api/v1/chatflows/00000000-0000-0000-0000-000000000000',
       })
-      expect(res.statusCode).toBe(500)
+      expect(res.statusCode).toBe(404)
     })
 
     it('updates a chatflow', async () => {
@@ -123,18 +132,20 @@ describe('server integration (inject)', () => {
 
       const del = await app.inject({ method: 'DELETE', url: `/api/v1/chatflows/${id}` })
       expect(del.statusCode).toBe(200)
+      const delBody = JSON.parse(del.body)
+      expect(delBody).toEqual({ raw: [], affected: 1 })
 
       const get = await app.inject({ method: 'GET', url: `/api/v1/chatflows/${id}` })
-      expect(get.statusCode).toBe(500)
+      expect(get.statusCode).toBe(404)
     })
 
-    it('returns 500 when name is missing on POST', async () => {
+    it('returns 400 when name is missing on POST', async () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/chatflows',
         payload: {},
       })
-      expect(res.statusCode).toBe(500)
+      expect(res.statusCode).toBe(400)
     })
     it('returns 400 when PUT body is missing', async () => {
       const create = await app.inject({
@@ -178,12 +189,12 @@ describe('server integration (inject)', () => {
       expect(res.statusCode).toBe(400)
     })
 
-    it('returns 500 for non-existent chatflow', async () => {
+    it('returns 404 for non-existent chatflow', async () => {
       const res = await app.inject({
         method: 'GET',
         url: '/api/v1/chatflows-uploads/00000000-0000-0000-0000-000000000000',
       })
-      expect(res.statusCode).toBe(500)
+      expect(res.statusCode).toBe(404)
     })
   })
 
@@ -241,20 +252,60 @@ describe('server integration (inject)', () => {
       expect(res.statusCode).toBe(400)
     })
 
-    it('returns 500 for non-existent chatflow', async () => {
+    it('returns 404 for non-existent chatflow', async () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/prediction/00000000-0000-0000-0000-000000000000',
         payload: { question: 'Hi' },
       })
+      expect(res.statusCode).toBe(404)
+    })
+
+    it('returns 500 for chatflow with empty graph', async () => {
+      const create = await app.inject({
+        method: 'POST',
+        url: '/api/v1/chatflows',
+        payload: { name: 'empty-graph' },
+      })
+      const { id } = JSON.parse(create.body)
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/v1/prediction/${id}`,
+        payload: { question: 'Hi', streaming: false },
+      })
       expect(res.statusCode).toBe(500)
+      const body = JSON.parse(res.body)
+      expect(body.message).toContain('Ending nodes not found')
+    })
+
+    it('returns 500 when ending node is not a Chain/Agent/Engine', async () => {
+      const badFlowData = JSON.stringify({
+        nodes: [{ id: 'n0', data: { name: 'plain', type: 'CustomNode', label: 'Plain', inputs: {} } }],
+        edges: [],
+      })
+      const create = await app.inject({
+        method: 'POST',
+        url: '/api/v1/chatflows',
+        payload: { name: 'bad-ending', flowData: badFlowData },
+      })
+      const { id } = JSON.parse(create.body)
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/v1/prediction/${id}`,
+        payload: { question: 'Hi', streaming: false },
+      })
+      expect(res.statusCode).toBe(500)
+      const body = JSON.parse(res.body)
+      expect(body.message).toContain('Ending node must be either a Chain or Agent or Engine')
     })
 
     it('returns 400 when question is missing', async () => {
       const create = await app.inject({
         method: 'POST',
         url: '/api/v1/chatflows',
-        payload: { name: 'pred-test' },
+        payload: { name: 'pred-test', flowData: VALID_FLOW_DATA },
       })
       const { id } = JSON.parse(create.body)
 
@@ -270,7 +321,7 @@ describe('server integration (inject)', () => {
       const create = await app.inject({
         method: 'POST',
         url: '/api/v1/chatflows',
-        payload: { name: 'pred-test' },
+        payload: { name: 'pred-test', flowData: VALID_FLOW_DATA },
       })
       const { id } = JSON.parse(create.body)
 
@@ -290,7 +341,7 @@ describe('server integration (inject)', () => {
       const create = await app.inject({
         method: 'POST',
         url: '/api/v1/chatflows',
-        payload: { name: 'stream-test' },
+        payload: { name: 'stream-test', flowData: VALID_FLOW_DATA },
       })
       const { id } = JSON.parse(create.body)
 
@@ -308,14 +359,14 @@ describe('server integration (inject)', () => {
       const tokenEvents = parsed.filter((e: { event: string }) => e.event === 'token')
       const endEvents = parsed.filter((e: { event: string }) => e.event === 'end')
 
-      expect(tokenEvents.length).toBeGreaterThan(0)
+      expect(tokenEvents.length).toBe(7)
       expect(endEvents).toHaveLength(1)
 
       const metaEvents = parsed.filter((e: { event: string }) => e.event === 'metadata')
       expect(metaEvents).toHaveLength(1)
       const metaPayload = JSON.parse(metaEvents[0].data)
-      expect(metaPayload.chatId).toBeDefined()
-      expect(metaPayload.chatMessageId).toBeDefined()
+      expect(metaPayload.chatId).toBeTypeOf('string')
+      expect(metaPayload.chatMessageId).toBeTypeOf('string')
     })
   })
 
@@ -356,7 +407,7 @@ describe('server integration (inject)', () => {
       const create = await app.inject({
         method: 'POST',
         url: '/api/v1/chatflows',
-        payload: { name: 'internal-pred-test' },
+        payload: { name: 'internal-pred-test', flowData: VALID_FLOW_DATA },
       })
       const { id } = JSON.parse(create.body)
 
@@ -376,7 +427,7 @@ describe('server integration (inject)', () => {
       const create = await app.inject({
         method: 'POST',
         url: '/api/v1/chatflows',
-        payload: { name: 'internal-stream-test' },
+        payload: { name: 'internal-stream-test', flowData: VALID_FLOW_DATA },
       })
       const { id } = JSON.parse(create.body)
 
@@ -389,7 +440,7 @@ describe('server integration (inject)', () => {
       const dataLines = res.body.split('\n').filter((l: string) => l.startsWith('data: '))
       const parsed = dataLines.map((l: string) => JSON.parse(l.slice(6)))
       const tokenEvents = parsed.filter((e: { event: string }) => e.event === 'token')
-      expect(tokenEvents.length).toBeGreaterThan(0)
+      expect(tokenEvents.length).toBe(7)
     })
 
     it('returns 400 for invalid flowId', async () => {
@@ -401,13 +452,13 @@ describe('server integration (inject)', () => {
       expect(res.statusCode).toBe(400)
     })
 
-    it('returns 500 for non-existent chatflow', async () => {
+    it('returns 404 for non-existent chatflow', async () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/internal-prediction/00000000-0000-0000-0000-000000000000',
         payload: { question: 'Hi' },
       })
-      expect(res.statusCode).toBe(500)
+      expect(res.statusCode).toBe(404)
     })
   })
 
@@ -470,7 +521,7 @@ describe('server integration (inject)', () => {
       })
       expect(res.statusCode).toBe(200)
       const body = JSON.parse(res.body)
-      expect(body.ChatFlow.length).toBeGreaterThanOrEqual(1)
+      expect(body.ChatFlow.length).toBe(1)
       expect(body.ChatFlow[0].name).toBe('export-cf')
     })
 
@@ -489,7 +540,7 @@ describe('server integration (inject)', () => {
       })
       expect(res.statusCode).toBe(200)
       const body = JSON.parse(res.body)
-      expect(body.Tool.length).toBeGreaterThanOrEqual(1)
+      expect(body.Tool.length).toBe(1)
     })
 
     it('POST /import accepts body and returns success', async () => {

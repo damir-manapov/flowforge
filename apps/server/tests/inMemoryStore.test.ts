@@ -95,7 +95,7 @@ describe('chatflowService (domain logic)', () => {
   describe('createChatflow', () => {
     it('creates a chatflow with defaults', () => {
       const cf = createChatflow({ name: 'Test' })
-      expect(cf.id).toBeDefined()
+      expect(cf.id).toBeTypeOf('string')
       expect(cf.name).toBe('Test')
       expect(cf.flowData).toBe('{}')
       expect(cf.deployed).toBe(false)
@@ -153,7 +153,7 @@ describe('chatflowService (domain logic)', () => {
       const cf = createChatflow({ name: 'Bump' })
       const original = cf.updatedDate
       const updated = updateChatflow(cf.id, { name: 'Bumped' })
-      expect(updated?.updatedDate).toBeDefined()
+      expect(updated?.updatedDate).toBeTypeOf('string')
       expect(new Date(updated?.updatedDate ?? '').getTime()).toBeGreaterThanOrEqual(new Date(original).getTime())
     })
   })
@@ -184,7 +184,7 @@ describe('chatflowService (domain logic)', () => {
       const fourth = mod.createChatflow({ name: 'fourth' }, log)
 
       expect(mod.getChatflowById(first.id)).toBeUndefined()
-      expect(mod.getChatflowById(fourth.id)).toBeDefined()
+      expect(mod.getChatflowById(fourth.id)?.name).toBe('fourth')
       expect(log.warn).toHaveBeenCalledWith(expect.stringContaining('evicted chatflow'))
       expect(log.warn).toHaveBeenCalledWith(expect.stringContaining(first.id))
 

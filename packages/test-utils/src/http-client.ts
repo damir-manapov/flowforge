@@ -138,4 +138,8 @@ export class HttpClient {
   getDefaultHeaders(): Record<string, string> {
     return { ...this.defaultHeaders }
   }
+
+  addDefaultHeaders(headers: Record<string, string>): void {
+    Object.assign(this.defaultHeaders, headers)
+  }
 }

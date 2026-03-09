@@ -32,17 +32,12 @@ export const PredictionResponseSchema = z.object({
   memoryType: z.string().nullable().optional(),
 })
 
-export const ErrorResponseSchema = z
-  .object({
-    statusCode: z.number().optional(),
-    error: z.string().optional(),
-    message: z.string().optional(),
-    success: z.literal(false).optional(),
-    stack: z.unknown().optional(),
-  })
-  .refine((v) => v.message !== undefined || v.error !== undefined, {
-    message: 'Must have message or error field',
-  })
+export const ErrorResponseSchema = z.object({
+  statusCode: z.number(),
+  success: z.literal(false),
+  message: z.string(),
+  stack: z.unknown().optional(),
+})
 
 export const AttachmentResponseSchema = z.object({
   chatflowId: z.string(),
@@ -140,8 +135,10 @@ export const ApiKeySchema = z.object({
   keyName: z.string(),
   apiKey: z.string(),
   apiSecret: z.string(),
-  createdAt: z.string(),
+  updatedDate: z.string(),
+  permissions: z.array(z.string()),
   chatFlows: z.array(z.unknown()),
+  workspaceId: z.string().optional(),
 })
 
 export const ApiKeyListSchema = z.array(ApiKeySchema)
@@ -189,7 +186,7 @@ export const DocumentStoreCreatedSchema = z.object({
   updatedDate: z.string(),
 })
 
-/** Shape returned by GET /document-store/stores (parsed arrays + totals). */
+/** Shape returned by GET /document-store/store (parsed arrays + totals). */
 export const DocumentStoreListItemSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -215,16 +212,18 @@ export const DocumentStoreDeleteResultSchema = z.object({
 
 // ── Marketplace Templates ────────────────────────────────────────────
 
-export const MarketplaceTemplateSchema = z.object({
-  id: z.number(),
-  templateName: z.string(),
-  flowData: z.string().optional(),
-  badge: z.string().nullable().optional(),
-  description: z.string().nullable().optional(),
-  type: z.string().nullable().optional(),
-  framework: z.union([z.array(z.string()), z.string(), z.null()]).optional(),
-  usecases: z.union([z.array(z.string()), z.null()]).optional(),
-  categories: z.array(z.string()).optional(),
-})
+export const MarketplaceTemplateSchema = z
+  .object({
+    id: z.string(),
+    templateName: z.string(),
+    flowData: z.string().optional(),
+    badge: z.string().nullable().optional(),
+    description: z.string().nullable().optional(),
+    type: z.string().nullable().optional(),
+    framework: z.array(z.string()).optional(),
+    usecases: z.array(z.string()).optional(),
+    categories: z.array(z.string()).optional(),
+  })
+  .passthrough()
 
 export const MarketplaceTemplateListSchema = z.array(MarketplaceTemplateSchema)
