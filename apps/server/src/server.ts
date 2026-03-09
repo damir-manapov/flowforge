@@ -10,7 +10,9 @@ import { registerAttachmentRoutes } from './routes/attachments.js'
 import { registerAuthRoutes } from './routes/auth.js'
 import { registerChatflowRoutes } from './routes/chatflows.js'
 import { registerCredentialRoutes } from './routes/credentials.js'
+import { registerDatasetRoutes } from './routes/datasets.js'
 import { registerDocumentStoreRoutes } from './routes/documentStores.js'
+import { registerEvaluationRoutes } from './routes/evaluations.js'
 import { registerExportImportRoutes } from './routes/exportImport.js'
 import { registerNodeRoutes } from './routes/nodes.js'
 import { registerPingRoutes } from './routes/ping.js'
@@ -122,6 +124,8 @@ export async function buildServer() {
   registerAssistantRoutes(app)
   registerDocumentStoreRoutes(app)
   registerExportImportRoutes(app)
+  registerDatasetRoutes(app)
+  registerEvaluationRoutes(app)
 
   // Flowise (Express) serves index.html for any unknown GET route (SPA
   // fallback).  Match that behaviour so compat tests see the same 200.
