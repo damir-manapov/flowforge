@@ -18,7 +18,8 @@
     "@langchain/openai": "^1.2.12",
     "crypto-js": "^4.2.0",
     "fastify": "^5.8.2",
-    "langchain": "^1.2.30"
+    "langchain": "^1.2.30",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
