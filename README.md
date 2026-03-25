@@ -9,6 +9,8 @@ BufferMemory, ConversationChain) out of 301 node definitions.
 
 ```
 flowforge/
+  e2e-reimpl.sh        — Run e2e tests against reimplementation (starts/stops dev server)
+  e2e-official.sh      — Run e2e tests against official Flowise (starts/stops container)
   apps/
     server/              — Flowise-compatible Fastify server
       src/
@@ -137,24 +139,29 @@ pnpm compose:flowise:up    # Start Flowise on :3001
 pnpm compose:flowise:down  # Stop Flowise
 ```
 
-## Run Tests
+## Run E2E Tests
 
-### Against our reimplementation
-
-Start the dev server (`pnpm dev` in `apps/server`), then:
+One-liner scripts that start the target, run compat tests, and clean up:
 
 ```bash
-cd apps/compat-tests
-pnpm test:reimpl            # BASE_URL=http://localhost:3000/api/v1
+bash e2e-reimpl.sh          # Starts dev server on :3000, runs 95 tests, stops server
+bash e2e-official.sh        # Starts Flowise container on :3001, runs tests, stops container
 ```
 
-### Against official Flowise
+Both scripts detect an already-running target and skip start/stop.
 
-Start official Flowise (`pnpm compose:flowise:up`), then:
+### Manual approach
 
 ```bash
+# Reimplementation
+cd apps/server && pnpm dev   # Start dev server on :3000
 cd apps/compat-tests
-pnpm test:official           # BASE_URL=http://localhost:3001/api/v1
+pnpm test:reimpl             # BASE_URL=http://localhost:3000/api/v1
+
+# Official Flowise
+pnpm compose:flowise:up      # Start Flowise on :3001
+cd apps/compat-tests
+pnpm test:official            # BASE_URL=http://localhost:3001/api/v1
 ```
 
 ### Record goldens
