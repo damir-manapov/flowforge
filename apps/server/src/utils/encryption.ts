@@ -1,5 +1,7 @@
 import { randomBytes } from 'node:crypto'
-import { AES, enc } from 'crypto-js'
+import CryptoJS from 'crypto-js'
+
+const { AES, enc } = CryptoJS
 
 const REDACTED = '_FLOWISE_BLANK_07167752-1a71-43b1-bf8f-4f32252165db'
 

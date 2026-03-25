@@ -115,7 +115,8 @@ describe.skipIf(SKIP)('Integration — E2E Prediction (Deepseek)', () => {
       // Expect at least an error event
       const errorEvent = events.find((e) => e.event === 'error')
       expect(errorEvent).toBeDefined()
-      expect(errorEvent?.data.toLowerCase()).toContain('credential')
+      // Flowise 3.0 says "credential", 3.1+ says "api key not found"
+      expect(errorEvent?.data.toLowerCase()).toMatch(/credential|api.key/)
 
       // Stream should end
       const endEvent = events.find((e) => e.event === 'end')
