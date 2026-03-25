@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@flowforge/test-utils": "workspace:*",
-    "zod": "^4.0.0"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^24.12.0"

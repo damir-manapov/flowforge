@@ -1,6 +1,6 @@
 services:
   flowise-ui-copy:
-    image: flowiseai/flowise:3.0.13
+    image: flowiseai/flowise:3.1.1
     entrypoint: ["sh", "-c", "cp -r /usr/local/lib/node_modules/flowise/node_modules/flowise-ui/build/* /out/"]
     volumes:
       - flowise-ui:/out

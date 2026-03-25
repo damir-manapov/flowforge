@@ -1,6 +1,6 @@
 FROM node:24-alpine AS builder
 
-RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ RUN pnpm --filter @flowforge/server build
 FROM node:24-alpine
 
 RUN addgroup -S app && adduser -S app -G app
-RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 # Remove bundled npm/npx/yarn (unused — we use pnpm) to eliminate their transitive CVEs
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx \
         /opt/yarn-* /usr/local/bin/yarn /usr/local/bin/yarnpkg
