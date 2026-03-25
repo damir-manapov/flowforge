@@ -2,21 +2,80 @@
 
 Flowise-compatible backend reimplementation with a comprehensive compatibility test harness.
 
+335 unit tests, 95 compat tests. 3 real node implementations (ChatDeepseek,
+BufferMemory, ConversationChain) out of 301 node definitions.
+
 ## Project Structure
 
 ```
 flowforge/
   apps/
-    server/            — Flowise-compatible Fastify server
-    compat-tests/      — Black-box compatibility test suite
+    server/              — Flowise-compatible Fastify server
+      src/
+        middleware/       — Auth enforcement (session cookie validation)
+        routes/          — 16 route modules (chatflows, predictions, datasets, evaluations, …)
+        services/        — Business logic (NodesPool, flowRunner, evaluationRunner, …)
+          nodes/         — Node implementations (chatDeepseek, bufferMemory, conversationChain)
+        storage/         — 11 in-memory stores (chatflows, credentials, datasets, …)
+        sse/             — SSE streaming writer
+        types/           — Shared TypeScript types
+        utils/           — Encryption, sanitization, pagination
+      data/              — Static data files
+        nodes.json                   — 301 node definitions
+        models.json                  — LLM model/region lists (from Flowise)
+        components-credentials.json  — 109 credential definitions
+        marketplace-templates.json   — 64 marketplace templates
+      tests/             — 29 test files (335 unit + integration tests)
+    compat-tests/        — Black-box compatibility test suite (95 tests)
   packages/
-    test-utils/        — Shared HTTP client, SSE parser, Flowise event parser, golden recorder
+    test-utils/          — Shared HTTP client, SSE parser, golden recorder
   compose/
     docker-compose.yml         — Server-only (build & run on :4000)
     docker-compose.dev-ui.yml  — Flowise UI via Caddy (:8080) + local dev server
     docker-compose.flowise.yml — Official Flowise on :3001
     docker-compose.record.yml  — Flowise + Caddy recording proxy
 ```
+
+## Server Architecture
+
+### Services
+
+| Service | Purpose |
+|---------|---------|
+| `nodesPool` | Unified node registry — metadata + init functions + load methods in one place |
+| `flowRunner` | Graph parser + executor — topological sort, credential resolution, node init |
+| `flowValidation` | Pre-execution validation — connectivity, required inputs, credential checks |
+| `predictionService` | Prediction orchestration — real flow execution or stub fallback |
+| `evaluationRunner` | Dataset-driven evaluation — 3 comparison strategies (exact, contains, regex) |
+| `modelLoader` | Reads `models.json` — provides model/region lists for node load methods |
+| `httpSecurity` | SSRF protection — IP deny list, DNS resolution checks, `secureFetch()` |
+| `secureZodParser` | Safe Zod schema parsing from untrusted strings (whitelist approach, no eval) |
+| `authService` | Session management — register, login, logout, cookie-based sessions |
+| `credentialService` | AES-encrypted credential storage and retrieval |
+
+### Storage (all in-memory)
+
+`inMemoryStore` (chatflows), `credentialStore`, `apiKeyStore`, `variableStore`,
+`toolStore`, `assistantStore`, `documentStoreStore`, `userStore`,
+`customTemplateStore`, `datasetStore`, `evaluationStore`
+
+### Middleware
+
+- **Auth** (`middleware/auth.ts`) — `onRequest` hook enforcing session cookies on
+  protected routes. Public routes (ping, login, register) bypass auth.
+
+### Node Implementations
+
+3 of 301 nodes have real `init` functions:
+
+| Node | LangChain class | Description |
+|------|----------------|-------------|
+| `chatDeepseek` | `ChatOpenAI` (baseURL override) | Deepseek chat model |
+| `bufferMemory` | `BufferMemory` | Conversation memory |
+| `conversationChain` | `ConversationChain` | Basic LLM chain with memory |
+
+Remaining 298 nodes have metadata only (served via `GET /nodes`) — predictions
+fall back to stub responses.
 
 ## Prerequisites
 
@@ -160,6 +219,7 @@ tests/integration/
 | `STUB_TOKEN_DELAY_MS` | Delay between SSE tokens in streaming mode | `50` |
 | `MAX_CHATFLOWS` | Max chatflows in memory (LRU eviction) | `10000` |
 | `FLOWISE_SECRETKEY_OVERWRITE` | Fixed AES key for credential encryption (omit for random key) | — |
+| `TOOL_FUNCTION_DENY_LIST` | Comma-separated hostnames/IPs blocked by `secureFetch` (SSRF protection) | — |
 
 ### Tests (`apps/compat-tests`)
 
